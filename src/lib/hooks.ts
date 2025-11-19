@@ -208,7 +208,8 @@ export function useActionItems(areaId?: number) {
       const result = await invoke<ActionItem[]>("get_action_items_by_area", {
         areaId,
       });
-      setItems(result);
+      const sorted = [...result].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      setItems(sorted);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load action items";
       toast.error(message);
@@ -273,7 +274,7 @@ export function useActionItems(areaId?: number) {
   };
 }
 
-export function useAllActionItems(areaFilter?: number) {
+export function useAllActionItems() {
   const [items, setItems] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -281,22 +282,34 @@ export function useAllActionItems(areaFilter?: number) {
     try {
       setLoading(true);
       const result = await invoke<ActionItem[]>("get_all_action_items", {
-        areaFilter: areaFilter || null,
+        areaFilter: null,
       });
-      setItems(result);
+      const sorted = [...result].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      setItems(sorted);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load action items";
       toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [areaFilter]);
+  }, []);
 
   useEffect(() => {
     loadItems();
   }, [loadItems]);
 
-  return { items, loading, refresh: loadItems };
+  const reorderItems = async (updates: Array<{ id: number; position: number }>) => {
+    try {
+      await invoke("reorder_action_items", { updates });
+      await loadItems();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to reorder action items";
+      toast.error(message);
+      throw err;
+    }
+  };
+
+  return { items, loading, refresh: loadItems, reorder: reorderItems };
 }
 
 export function useResetAreaData() {

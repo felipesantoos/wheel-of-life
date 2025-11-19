@@ -21,6 +21,7 @@ export interface ActionItem {
   area_id: number;
   title: string;
   created_at: number;
+  position: number;
   archived_at?: number;
 }
 

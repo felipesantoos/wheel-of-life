@@ -26,6 +26,6 @@ pub struct ActionItem {
     pub area_id: i64,
     pub title: String,
     pub created_at: i64,
+    pub position: i64,
     pub archived_at: Option<i64>,
 }
-
