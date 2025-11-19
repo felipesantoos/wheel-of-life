@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 
 interface LifeAreaFormProps {
   area?: LifeArea;
-  onSubmit: (name: string, description: string, color: string, order: number) => Promise<void>;
+  onSubmit: (name: string, description: string | undefined, color: string, order: number) => Promise<void>;
   onCancel: () => void;
   maxOrder: number;
 }

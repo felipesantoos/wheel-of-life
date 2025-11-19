@@ -9,13 +9,7 @@ interface ActionItemFormProps {
   showAreaSelector?: boolean;
   showHeader?: boolean;
   showCardWrapper?: boolean;
-  onSubmit: (
-    areaId: number,
-    title: string,
-    description: string | undefined,
-    priority: string | undefined,
-    deadline: number | undefined
-  ) => Promise<void>;
+  onSubmit: (areaId: number, title: string) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -30,26 +24,12 @@ export default function ActionItemForm({
   onCancel,
 }: ActionItemFormProps) {
   const [title, setTitle] = useState(item?.title || "");
-  const [description, setDescription] = useState(item?.description || "");
-  const [priority, setPriority] = useState<"low" | "medium" | "high" | "">(
-    (item?.priority as "low" | "medium" | "high") || ""
-  );
-  const [deadline, setDeadline] = useState(
-    item?.deadline ? new Date(item.deadline * 1000).toISOString().split("T")[0] : ""
-  );
   const [selectedAreaId, setSelectedAreaId] = useState<number | undefined>(areaId);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (item) {
       setTitle(item.title);
-      setDescription(item.description || "");
-      setPriority((item.priority as "low" | "medium" | "high") || "");
-      setDeadline(
-        item.deadline
-          ? new Date(item.deadline * 1000).toISOString().split("T")[0]
-          : ""
-      );
     }
   }, [item]);
 
@@ -62,27 +42,14 @@ export default function ActionItemForm({
 
     setIsSubmitting(true);
     try {
-      const deadlineTimestamp = deadline
-        ? Math.floor(new Date(deadline).getTime() / 1000)
-        : undefined;
-      
       const finalAreaId = showAreaSelector ? selectedAreaId : areaId;
       if (!finalAreaId) {
         return;
       }
 
-      await onSubmit(
-        finalAreaId,
-        title.trim(),
-        description.trim() || undefined,
-        priority || undefined,
-        deadlineTimestamp
-      );
+      await onSubmit(finalAreaId, title.trim());
       if (!item) {
         setTitle("");
-        setDescription("");
-        setPriority("");
-        setDeadline("");
         if (showAreaSelector) {
           setSelectedAreaId(undefined);
         }
@@ -129,48 +96,6 @@ export default function ActionItemForm({
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
           placeholder="e.g., Exercise 3 times per week"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows={3}
-          placeholder="Optional description..."
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Priority
-        </label>
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high" | "")}
-          className="custom-select w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer appearance-none"
-        >
-          <option value="">None</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Deadline
-        </label>
-        <input
-          type="date"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          min={new Date().toISOString().split("T")[0]}
         />
       </div>
 

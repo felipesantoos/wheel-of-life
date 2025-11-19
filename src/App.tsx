@@ -4,8 +4,7 @@ import HomePage from "./pages/HomePage";
 import LifeAreaDetailPage from "./pages/LifeAreaDetailPage";
 import LifeAreasManagementPage from "./pages/LifeAreasManagementPage";
 import HistoryPage from "./pages/HistoryPage";
-
-type Page = "home" | "detail" | "manage" | "history";
+import type { Page } from "./types";
 
 interface NavigationState {
   page: Page;

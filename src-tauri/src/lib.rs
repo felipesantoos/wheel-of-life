@@ -273,23 +273,19 @@ fn get_all_latest_scores() -> Result<Vec<Score>, String> {
 fn create_action_item(
     area_id: i64,
     title: String,
-    description: Option<String>,
-    priority: Option<String>,
-    deadline: Option<i64>,
 ) -> Result<ActionItem, String> {
+    let clean_title = title.trim();
+    if clean_title.is_empty() {
+        return Err("Title cannot be empty".to_string());
+    }
+    
     let conn = get_connection()?;
     let now = Utc::now().timestamp();
     
-    if let Some(ref p) = priority {
-        if !["low", "medium", "high"].contains(&p.as_str()) {
-            return Err("Priority must be 'low', 'medium', or 'high'".to_string());
-        }
-    }
-    
     conn.execute(
-        "INSERT INTO action_items (area_id, title, description, status, priority, deadline, created_at)
-         VALUES (?1, ?2, ?3, 'todo', ?4, ?5, ?6)",
-        params![area_id, title, description, priority, deadline, now],
+        "INSERT INTO action_items (area_id, title, created_at)
+         VALUES (?1, ?2, ?3)",
+        params![area_id, clean_title, now],
     ).map_err(|e| format!("Failed to insert action item: {}", e))?;
     
     let id = conn.last_insert_rowid();
@@ -297,107 +293,61 @@ fn create_action_item(
     Ok(ActionItem {
         id,
         area_id,
-        title,
-        description,
-        status: "todo".to_string(),
-        priority,
-        deadline,
+        title: clean_title.to_string(),
         created_at: now,
-        completed_at: None,
+        archived_at: None,
     })
 }
 
 #[tauri::command]
-fn get_action_items_by_area(
-    area_id: i64,
-    status_filter: Option<String>,
-) -> Result<Vec<ActionItem>, String> {
+fn get_action_items_by_area(area_id: i64) -> Result<Vec<ActionItem>, String> {
     let conn = get_connection()?;
+    let mut stmt = conn.prepare(
+        "SELECT id, area_id, title, created_at, archived_at
+         FROM action_items
+         WHERE area_id = ? AND archived_at IS NULL
+         ORDER BY created_at DESC"
+    ).map_err(|e| format!("Failed to prepare statement: {}", e))?;
+    
+    let rows = stmt.query_map(params![area_id], |row| {
+        Ok(ActionItem {
+            id: row.get(0)?,
+            area_id: row.get(1)?,
+            title: row.get(2)?,
+            created_at: row.get(3)?,
+            archived_at: row.get(4)?,
+        })
+    }).map_err(|e| format!("Failed to query action items: {}", e))?;
     
     let mut result = Vec::new();
-    
-    if let Some(status) = status_filter {
-        let mut stmt = conn.prepare(
-            "SELECT id, area_id, title, description, status, priority, deadline, created_at, completed_at
-             FROM action_items
-             WHERE area_id = ? AND status = ?
-             ORDER BY created_at DESC"
-        ).map_err(|e| format!("Failed to prepare statement: {}", e))?;
-        
-        let rows = stmt.query_map(params![area_id, status], |row| {
-            Ok(ActionItem {
-                id: row.get(0)?,
-                area_id: row.get(1)?,
-                title: row.get(2)?,
-                description: row.get(3)?,
-                status: row.get(4)?,
-                priority: row.get(5)?,
-                deadline: row.get(6)?,
-                created_at: row.get(7)?,
-                completed_at: row.get(8)?,
-            })
-        }).map_err(|e| format!("Failed to query action items: {}", e))?;
-        
-        for item in rows {
-            result.push(item.map_err(|e| format!("Failed to parse action item: {}", e))?);
-        }
-    } else {
-        let mut stmt = conn.prepare(
-            "SELECT id, area_id, title, description, status, priority, deadline, created_at, completed_at
-             FROM action_items
-             WHERE area_id = ?
-             ORDER BY created_at DESC"
-        ).map_err(|e| format!("Failed to prepare statement: {}", e))?;
-        
-        let rows = stmt.query_map(params![area_id], |row| {
-            Ok(ActionItem {
-                id: row.get(0)?,
-                area_id: row.get(1)?,
-                title: row.get(2)?,
-                description: row.get(3)?,
-                status: row.get(4)?,
-                priority: row.get(5)?,
-                deadline: row.get(6)?,
-                created_at: row.get(7)?,
-                completed_at: row.get(8)?,
-            })
-        }).map_err(|e| format!("Failed to query action items: {}", e))?;
-        
-        for item in rows {
-            result.push(item.map_err(|e| format!("Failed to parse action item: {}", e))?);
-        }
+    for item in rows {
+        result.push(item.map_err(|e| format!("Failed to parse action item: {}", e))?);
     }
     
     Ok(result)
 }
 
 #[tauri::command]
-fn get_all_action_items(
-    area_filter: Option<i64>,
-) -> Result<Vec<ActionItem>, String> {
+fn get_all_action_items(area_filter: Option<i64>) -> Result<Vec<ActionItem>, String> {
     let conn = get_connection()?;
+    
+    let base_query = "SELECT id, area_id, title, created_at, archived_at
+                      FROM action_items
+                      WHERE archived_at IS NULL";
     
     let mut result = Vec::new();
     
     if let Some(area_id) = area_filter {
-        let mut stmt = conn.prepare(
-            "SELECT id, area_id, title, description, status, priority, deadline, created_at, completed_at
-             FROM action_items
-             WHERE status != 'done' AND area_id = ?
-             ORDER BY created_at DESC"
-        ).map_err(|e| format!("Failed to prepare statement: {}", e))?;
+        let mut stmt = conn.prepare(&format!("{base_query} AND area_id = ? ORDER BY created_at DESC"))
+            .map_err(|e| format!("Failed to prepare statement: {}", e))?;
         
         let rows = stmt.query_map(params![area_id], |row| {
             Ok(ActionItem {
                 id: row.get(0)?,
                 area_id: row.get(1)?,
                 title: row.get(2)?,
-                description: row.get(3)?,
-                status: row.get(4)?,
-                priority: row.get(5)?,
-                deadline: row.get(6)?,
-                created_at: row.get(7)?,
-                completed_at: row.get(8)?,
+                created_at: row.get(3)?,
+                archived_at: row.get(4)?,
             })
         }).map_err(|e| format!("Failed to query action items: {}", e))?;
         
@@ -405,24 +355,16 @@ fn get_all_action_items(
             result.push(item.map_err(|e| format!("Failed to parse action item: {}", e))?);
         }
     } else {
-        let mut stmt = conn.prepare(
-            "SELECT id, area_id, title, description, status, priority, deadline, created_at, completed_at
-             FROM action_items
-             WHERE status != 'done'
-             ORDER BY created_at DESC"
-        ).map_err(|e| format!("Failed to prepare statement: {}", e))?;
+        let mut stmt = conn.prepare(&format!("{base_query} ORDER BY created_at DESC"))
+            .map_err(|e| format!("Failed to prepare statement: {}", e))?;
         
-        let rows = stmt.query_map(params![], |row| {
+        let rows = stmt.query_map([], |row| {
             Ok(ActionItem {
                 id: row.get(0)?,
                 area_id: row.get(1)?,
                 title: row.get(2)?,
-                description: row.get(3)?,
-                status: row.get(4)?,
-                priority: row.get(5)?,
-                deadline: row.get(6)?,
-                created_at: row.get(7)?,
-                completed_at: row.get(8)?,
+                created_at: row.get(3)?,
+                archived_at: row.get(4)?,
             })
         }).map_err(|e| format!("Failed to query action items: {}", e))?;
         
@@ -438,67 +380,45 @@ fn get_all_action_items(
 fn update_action_item(
     id: i64,
     title: String,
-    description: Option<String>,
-    status: String,
-    priority: Option<String>,
-    deadline: Option<i64>,
 ) -> Result<ActionItem, String> {
-    if !["todo", "in_progress", "done"].contains(&status.as_str()) {
-        return Err("Status must be 'todo', 'in_progress', or 'done'".to_string());
-    }
-    
-    if let Some(ref p) = priority {
-        if !["low", "medium", "high"].contains(&p.as_str()) {
-            return Err("Priority must be 'low', 'medium', or 'high'".to_string());
-        }
+    let clean_title = title.trim();
+    if clean_title.is_empty() {
+        return Err("Title cannot be empty".to_string());
     }
     
     let conn = get_connection()?;
-    let now = Utc::now().timestamp();
-    
-    // Set completed_at if status is 'done' and wasn't before
-    let mut completed_at: Option<i64> = None;
-    if status == "done" {
-        let current: Option<String> = conn.query_row(
-            "SELECT status FROM action_items WHERE id = ?",
-            params![id],
-            |row| Ok(row.get(0)?),
-        ).ok();
-        
-        if current.as_deref() != Some("done") {
-            completed_at = Some(now);
-        } else {
-            // Keep existing completed_at
-            completed_at = conn.query_row(
-                "SELECT completed_at FROM action_items WHERE id = ?",
-                params![id],
-                |row| Ok(row.get(0)?),
-            ).ok().flatten();
-        }
-    }
     
     conn.execute(
-        "UPDATE action_items SET title = ?1, description = ?2, status = ?3, priority = ?4, deadline = ?5, completed_at = ?6 WHERE id = ?7",
-        params![title, description, status, priority, deadline, completed_at, id],
+        "UPDATE action_items SET title = ?1 WHERE id = ?2",
+        params![clean_title, id],
     ).map_err(|e| format!("Failed to update action item: {}", e))?;
     
     conn.query_row(
-        "SELECT id, area_id, title, description, status, priority, deadline, created_at, completed_at FROM action_items WHERE id = ?",
+        "SELECT id, area_id, title, created_at, archived_at FROM action_items WHERE id = ?",
         params![id],
         |row| {
             Ok(ActionItem {
                 id: row.get(0)?,
                 area_id: row.get(1)?,
                 title: row.get(2)?,
-                description: row.get(3)?,
-                status: row.get(4)?,
-                priority: row.get(5)?,
-                deadline: row.get(6)?,
-                created_at: row.get(7)?,
-                completed_at: row.get(8)?,
+                created_at: row.get(3)?,
+                archived_at: row.get(4)?,
             })
         },
     ).map_err(|e| format!("Failed to get action item: {}", e))
+}
+
+#[tauri::command]
+fn archive_action_item(id: i64) -> Result<(), String> {
+    let conn = get_connection()?;
+    let now = Utc::now().timestamp();
+    
+    conn.execute(
+        "UPDATE action_items SET archived_at = ?1 WHERE id = ?2",
+        params![now, id],
+    ).map_err(|e| format!("Failed to archive action item: {}", e))?;
+    
+    Ok(())
 }
 
 #[tauri::command]
@@ -511,66 +431,6 @@ fn delete_action_item(id: i64) -> Result<(), String> {
     ).map_err(|e| format!("Failed to delete action item: {}", e))?;
     
     Ok(())
-}
-
-#[tauri::command]
-fn update_action_item_status(id: i64, status: String) -> Result<ActionItem, String> {
-    if !["todo", "in_progress", "done"].contains(&status.as_str()) {
-        return Err("Status must be 'todo', 'in_progress', or 'done'".to_string());
-    }
-    
-    let conn = get_connection()?;
-    let now = Utc::now().timestamp();
-    
-    // Get current item to preserve other fields
-    let current: ActionItem = conn.query_row(
-        "SELECT id, area_id, title, description, status, priority, deadline, created_at, completed_at FROM action_items WHERE id = ?",
-        params![id],
-        |row| {
-            Ok(ActionItem {
-                id: row.get(0)?,
-                area_id: row.get(1)?,
-                title: row.get(2)?,
-                description: row.get(3)?,
-                status: row.get(4)?,
-                priority: row.get(5)?,
-                deadline: row.get(6)?,
-                created_at: row.get(7)?,
-                completed_at: row.get(8)?,
-            })
-        },
-    ).map_err(|e| format!("Failed to get action item: {}", e))?;
-    
-    let mut completed_at = current.completed_at;
-    if status == "done" && current.status != "done" {
-        completed_at = Some(now);
-    } else if status != "done" {
-        completed_at = None;
-    }
-    
-    conn.execute(
-        "UPDATE action_items SET status = ?1, completed_at = ?2 WHERE id = ?3",
-        params![status, completed_at, id],
-    ).map_err(|e| format!("Failed to update action item status: {}", e))?;
-    
-    // Return updated item
-    conn.query_row(
-        "SELECT id, area_id, title, description, status, priority, deadline, created_at, completed_at FROM action_items WHERE id = ?",
-        params![id],
-        |row| {
-            Ok(ActionItem {
-                id: row.get(0)?,
-                area_id: row.get(1)?,
-                title: row.get(2)?,
-                description: row.get(3)?,
-                status: row.get(4)?,
-                priority: row.get(5)?,
-                deadline: row.get(6)?,
-                created_at: row.get(7)?,
-                completed_at: row.get(8)?,
-            })
-        },
-    ).map_err(|e| format!("Failed to get updated action item: {}", e))
 }
 
 #[tauri::command]
@@ -665,8 +525,8 @@ pub fn run() {
             get_action_items_by_area,
             get_all_action_items,
             update_action_item,
+            archive_action_item,
             delete_action_item,
-            update_action_item_status,
             reset_area_data,
             reset_area_scores,
             reset_area_action_items,

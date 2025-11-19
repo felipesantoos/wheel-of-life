@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useLifeAreas, useAllLatestScores, useResetAllData } from "../lib/hooks";
-import { LifeArea } from "../types";
+import { LifeArea, Page } from "../types";
 import LifeAreaCard from "../components/LifeAreaCard";
 import LifeAreaForm from "../components/LifeAreaForm";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { ArrowLeft, Plus, Edit2, Archive, RotateCcw, Trash2, RotateCw } from "lucide-react";
+import { ArrowLeft, Plus, Edit2, Archive, RotateCcw, RotateCw } from "lucide-react";
 
 interface LifeAreasManagementPageProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: Page, data?: any) => void;
 }
 
 export default function LifeAreasManagementPage({

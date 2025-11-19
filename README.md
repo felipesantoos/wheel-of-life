@@ -1,4 +1,4 @@
-# Roda da Vida
+# Wheel of Life
 
 Desktop application for tracking life areas, scores, and action items with a visual life wheel.
 

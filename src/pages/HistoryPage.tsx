@@ -1,32 +1,21 @@
 import { useState, useMemo } from "react";
 import { useLifeAreas } from "../lib/hooks";
 import { useScores } from "../lib/hooks";
-import { LifeArea } from "../types";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { formatDateShort } from "../lib/utils";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import type { Page } from "../types";
 
 interface HistoryPageProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: Page, data?: any) => void;
 }
 
 export default function HistoryPage({ onNavigate }: HistoryPageProps) {
   const { areas } = useLifeAreas(false);
-  const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedArea, setSelectedArea] = useState<number | null>(null);
 
   // Get scores for selected area
   const { scores: areaScores } = useScores(selectedArea || undefined);
-
-  // Get all scores for all areas (for comparison)
-  const allScoresByArea = useMemo(() => {
-    const result: Record<number, Array<{ date: string; score: number; timestamp: number }>> = {};
-    areas.forEach((area) => {
-      // This would need to be loaded, but for now we'll use a simplified approach
-      result[area.id] = [];
-    });
-    return result;
-  }, [areas]);
 
   const chartData = useMemo(() => {
     if (!selectedArea || areaScores.length === 0) return [];

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Roda da Vida",
+  "productName": "Wheel of Life",
   "version": "0.1.0",
   "identifier": "com.felipesantos.roda-da-vida",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Roda da Vida",
+        "title": "Wheel of Life",
         "width": 1000,
         "height": 700,
         "minWidth": 800,

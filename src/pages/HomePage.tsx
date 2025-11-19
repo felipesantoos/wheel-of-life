@@ -3,12 +3,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { useLifeAreas, useAllLatestScores, useAllActionItems } from "../lib/hooks";
 import LifeWheel from "../components/LifeWheel";
 import ActionItemForm from "../components/ActionItemForm";
-import { LifeArea, ActionItem } from "../types";
-import { Settings, History, Plus, Edit2 } from "lucide-react";
+import { LifeArea, ActionItem, Page } from "../types";
+import { Settings, History, Plus, Edit2, Archive } from "lucide-react";
 import { toast } from "sonner";
+import { getContrastTextColor } from "../lib/utils";
 
 interface HomePageProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: Page, data?: any) => void;
 }
 
 export default function HomePage({ onNavigate }: HomePageProps) {
@@ -57,35 +58,11 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
   };
 
-  const handleStatusChange = async (itemId: number, newStatus: string) => {
-    try {
-      await invoke("update_action_item_status", { id: itemId, status: newStatus });
-      await refreshActionItems();
-      toast.success("Status updated successfully", {
-        id: `status-update-${itemId}-${Date.now()}`,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update status";
-      toast.error(message, {
-        id: `status-error-${itemId}-${Date.now()}`,
-      });
-    }
-  };
-
-  const handleCreateActionItem = async (
-    areaId: number,
-    title: string,
-    description: string | undefined,
-    priority: string | undefined,
-    deadline: number | undefined
-  ) => {
+  const handleCreateActionItem = async (areaId: number, title: string) => {
     try {
       await invoke("create_action_item", {
         areaId,
         title,
-        description: description || null,
-        priority: priority || null,
-        deadline: deadline || null,
       });
       await refreshActionItems();
       setShowActionItemModal(false);
@@ -100,23 +77,13 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
   };
 
-  const handleUpdateActionItem = async (
-    _areaId: number,
-    title: string,
-    description: string | undefined,
-    priority: string | undefined,
-    deadline: number | undefined
-  ) => {
+  const handleUpdateActionItem = async (_areaId: number, title: string) => {
     if (!editingItem) return;
     
     try {
       await invoke("update_action_item", {
         id: editingItem.id,
         title,
-        description: description || null,
-        status: editingItem.status,
-        priority: priority || null,
-        deadline: deadline || null,
       });
       await refreshActionItems();
       setShowActionItemModal(false);
@@ -128,6 +95,21 @@ export default function HomePage({ onNavigate }: HomePageProps) {
       const message = err instanceof Error ? err.message : "Failed to update action item";
       toast.error(message, {
         id: `update-item-error-${Date.now()}`,
+      });
+    }
+  };
+
+  const handleArchiveActionItem = async (itemId: number) => {
+    try {
+      await invoke("archive_action_item", { id: itemId });
+      await refreshActionItems();
+      toast.success("Action item archived", {
+        id: `archive-item-${itemId}-${Date.now()}`,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to archive action item";
+      toast.error(message, {
+        id: `archive-item-error-${itemId}-${Date.now()}`,
       });
     }
   };
@@ -153,7 +135,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
       <div className="flex items-center justify-center h-full">
         <div className="text-center max-w-md">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Welcome to Roda da Vida!
+            Welcome to Wheel of Life!
           </h2>
           <p className="text-gray-600 mb-6">
             Get started by creating your first life area. This will help you track
@@ -252,45 +234,51 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               <p>No action items found</p>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto space-y-2">
-              {actionItems.map((item) => {
-                const area = areas.find((a) => a.id === item.area_id);
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-                  >
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: area?.color || "#gray" }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {area?.name || "Unknown Area"}
-                      </div>
-                      <div className="text-sm text-gray-600 truncate">{item.title}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
+            <div className="flex-1 overflow-y-auto pr-1 mt-2">
+              <div className="flex flex-wrap gap-1">
+                {actionItems.map((item) => {
+                  const area = areas.find((a) => a.id === item.area_id);
+                  const areaColor = area?.color || "#e5e7eb";
+                  const textColor = getContrastTextColor(areaColor);
+                  return (
+                    <div key={item.id} className="w-[90px] h-[90px]">
+                      <div
+                        className="group relative flex h-full flex-col gap-1 p-1 border border-black/10 shadow-sm transition-all duration-300 hover:-translate-y-0.5"
+                        style={{
+                          backgroundColor: areaColor,
+                          color: textColor,
+                          boxShadow: "3px 4px 8px rgba(15,23,42,0.15)",
+                          borderRadius: 0,
+                        }}
+                      >
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleEditClick(item)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                        className="p-1 rounded-full bg-black/10 text-white hover:bg-black/20 transition-colors"
                         title="Edit action item"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3 h-3" />
                       </button>
-                      <select
-                        value={item.status}
-                        onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                        className="custom-select-xs px-2 py-1 text-xs border border-gray-300 rounded-md bg-white text-gray-700 shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer appearance-none"
+                      <button
+                        onClick={() => handleArchiveActionItem(item.id)}
+                        className="p-1 rounded-full bg-black/10 text-white hover:bg-black/20 transition-colors"
+                        title="Archive action item"
                       >
-                        <option value="todo">To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="done">Done</option>
-                      </select>
+                        <Archive className="w-3 h-3" />
+                      </button>
                     </div>
-                  </div>
-                );
-              })}
+
+                    <div className="mt-0.5 text-xs font-medium leading-snug break-words">
+                      {item.title}
+                    </div>
+                    <div className="mt-auto text-right text-[9px] font-semibold uppercase tracking-wide opacity-80">
+                      <span>{area?.name || "Unknown Area"}</span>
+                    </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

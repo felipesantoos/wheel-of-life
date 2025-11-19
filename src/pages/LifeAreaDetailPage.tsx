@@ -1,19 +1,18 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useScores, useActionItems, useResetAreaData, useResetAreaScores, useResetAreaActionItems } from "../lib/hooks";
-import { LifeArea, ActionItem } from "../types";
-import LifeAreaCard from "../components/LifeAreaCard";
+import { LifeArea, ActionItem, Page } from "../types";
 import ScoreForm from "../components/ScoreForm";
 import ScoreHistoryChart from "../components/ScoreHistoryChart";
 import ActionItemCard from "../components/ActionItemCard";
 import ActionItemForm from "../components/ActionItemForm";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { ArrowLeft, Plus, CheckCircle2, Circle, PlayCircle, RotateCw } from "lucide-react";
+import { ArrowLeft, Plus, RotateCw } from "lucide-react";
 import { formatDate } from "../lib/utils";
 
 interface LifeAreaDetailPageProps {
   areaId: number;
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: Page, data?: any) => void;
 }
 
 export default function LifeAreaDetailPage({
@@ -24,16 +23,12 @@ export default function LifeAreaDetailPage({
   const [showScoreForm, setShowScoreForm] = useState(false);
   const [showActionItemForm, setShowActionItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState<ActionItem | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("");
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showResetScoresDialog, setShowResetScoresDialog] = useState(false);
   const [showResetActionItemsDialog, setShowResetActionItemsDialog] = useState(false);
 
   const { scores, latestScore, createScore, refresh: refreshScores } = useScores(areaId);
-  const { items, createItem, updateItem, deleteItem, updateStatus, refresh: refreshItems } = useActionItems(
-    areaId,
-    statusFilter || undefined
-  );
+  const { items, createItem, updateItem, archiveItem, refresh: refreshItems } = useActionItems(areaId);
   const { resetAreaData } = useResetAreaData();
   const { resetAreaScores } = useResetAreaScores();
   const { resetAreaActionItems } = useResetAreaActionItems();
@@ -55,26 +50,14 @@ export default function LifeAreaDetailPage({
     setShowScoreForm(false);
   };
 
-  const handleCreateActionItem = async (
-    areaId: number,
-    title: string,
-    description: string | undefined,
-    priority: string | undefined,
-    deadline: number | undefined
-  ) => {
-    await createItem(areaId, title, description, priority, deadline);
+  const handleCreateActionItem = async (areaId: number, title: string) => {
+    await createItem(areaId, title);
     setShowActionItemForm(false);
   };
 
-  const handleUpdateActionItem = async (
-    areaId: number,
-    title: string,
-    description: string | undefined,
-    priority: string | undefined,
-    deadline: number | undefined
-  ) => {
+  const handleUpdateActionItem = async (_areaId: number, title: string) => {
     if (!editingItem) return;
-    await updateItem(editingItem.id, title, description, editingItem.status, priority, deadline);
+    await updateItem(editingItem.id, title);
     setEditingItem(null);
   };
 
@@ -83,10 +66,8 @@ export default function LifeAreaDetailPage({
     setShowActionItemForm(true);
   };
 
-  const handleDeleteItem = async (id: number) => {
-    if (confirm("Are you sure you want to delete this action item?")) {
-      await deleteItem(id);
-    }
+  const handleArchiveItem = async (id: number) => {
+    await archiveItem(id);
   };
 
   const handleResetArea = async () => {
@@ -130,10 +111,6 @@ export default function LifeAreaDetailPage({
       </div>
     );
   }
-
-  const todoItems = items.filter((i) => i.status === "todo");
-  const inProgressItems = items.filter((i) => i.status === "in_progress");
-  const doneItems = items.filter((i) => i.status === "done");
 
   return (
     <div className="h-full flex flex-col">
@@ -258,16 +235,6 @@ export default function LifeAreaDetailPage({
                   Reset Action Items
                 </button>
               )}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="custom-select px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer appearance-none"
-              >
-                <option value="">All Status</option>
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="done">Done</option>
-              </select>
               {!showActionItemForm && (
                 <button
                   onClick={() => {
@@ -295,86 +262,20 @@ export default function LifeAreaDetailPage({
                 }}
               />
             </div>
+          ) : items.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">
+              No action items yet. Create your first one!
+            </p>
           ) : (
-            <div className="space-y-4">
-              {statusFilter === "" && (
-                <>
-                  {todoItems.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Circle className="w-4 h-4 text-gray-400" />
-                        <h3 className="font-medium text-gray-700">To Do</h3>
-                      </div>
-                      <div className="space-y-2">
-                        {todoItems.map((item) => (
-                          <ActionItemCard
-                            key={item.id}
-                            item={item}
-                            onEdit={() => handleEditItem(item)}
-                            onDelete={() => handleDeleteItem(item.id)}
-                            onStatusChange={(status) => updateStatus(item.id, status)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {inProgressItems.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <PlayCircle className="w-4 h-4 text-blue-500" />
-                        <h3 className="font-medium text-gray-700">In Progress</h3>
-                      </div>
-                      <div className="space-y-2">
-                        {inProgressItems.map((item) => (
-                          <ActionItemCard
-                            key={item.id}
-                            item={item}
-                            onEdit={() => handleEditItem(item)}
-                            onDelete={() => handleDeleteItem(item.id)}
-                            onStatusChange={(status) => updateStatus(item.id, status)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {doneItems.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        <h3 className="font-medium text-gray-700">Done</h3>
-                      </div>
-                      <div className="space-y-2">
-                        {doneItems.map((item) => (
-                          <ActionItemCard
-                            key={item.id}
-                            item={item}
-                            onEdit={() => handleEditItem(item)}
-                            onDelete={() => handleDeleteItem(item.id)}
-                            onStatusChange={(status) => updateStatus(item.id, status)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {statusFilter !== "" && items.length === 0 && (
-                <p className="text-gray-500 text-center py-8">
-                  No action items with this status
-                </p>
-              )}
-
-              {statusFilter === "" &&
-                todoItems.length === 0 &&
-                inProgressItems.length === 0 &&
-                doneItems.length === 0 && (
-                  <p className="text-gray-500 text-center py-8">
-                    No action items yet. Create your first one!
-                  </p>
-                )}
+            <div className="space-y-3">
+              {items.map((item) => (
+                <ActionItemCard
+                  key={item.id}
+                  item={item}
+                  onEdit={() => handleEditItem(item)}
+                  onArchive={() => handleArchiveItem(item.id)}
+                />
+              ))}
             </div>
           )}
         </section>

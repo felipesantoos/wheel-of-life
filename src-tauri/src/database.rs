@@ -51,16 +51,14 @@ pub fn init_database() -> Result<Connection, String> {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             area_id INTEGER NOT NULL,
             title TEXT NOT NULL,
-            description TEXT,
-            status TEXT NOT NULL CHECK(status IN ('todo', 'in_progress', 'done')),
-            priority TEXT CHECK(priority IN ('low', 'medium', 'high')),
-            deadline INTEGER,
             created_at INTEGER NOT NULL,
-            completed_at INTEGER,
+            archived_at INTEGER,
             FOREIGN KEY(area_id) REFERENCES life_areas(id)
         )",
         [],
     ).map_err(|e| format!("Failed to create action_items table: {}", e))?;
+    
+    migrate_action_items_table(&conn)?;
     
     // Create indexes
     conn.execute(
@@ -78,6 +76,11 @@ pub fn init_database() -> Result<Connection, String> {
         [],
     ).map_err(|e| format!("Failed to create index: {}", e))?;
     
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_action_items_archived ON action_items(archived_at)",
+        [],
+    ).map_err(|e| format!("Failed to create index: {}", e))?;
+    
     Ok(conn)
 }
 
@@ -85,5 +88,51 @@ pub fn get_connection() -> Result<Connection, String> {
     let db_path = get_db_path()?;
     Connection::open(&db_path)
         .map_err(|e| format!("Failed to open database: {}", e))
+}
+
+fn migrate_action_items_table(conn: &Connection) -> Result<(), String> {
+    let mut stmt = conn.prepare("PRAGMA table_info(action_items)")
+        .map_err(|e| format!("Failed to inspect action_items table: {}", e))?;
+    
+    let column_info = stmt.query_map([], |row| {
+        Ok(row.get::<usize, String>(1)?)
+    }).map_err(|e| format!("Failed to iterate table info: {}", e))?;
+    
+    let mut has_archived_column = false;
+    for col in column_info {
+        let name = col.map_err(|e| format!("Failed to read column info: {}", e))?;
+        if name == "archived_at" {
+            has_archived_column = true;
+            break;
+        }
+    }
+    
+    if !has_archived_column {
+        conn.execute("ALTER TABLE action_items RENAME TO action_items_old", [])
+            .map_err(|e| format!("Failed to rename action_items table: {}", e))?;
+        
+        conn.execute(
+            "CREATE TABLE action_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                area_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                archived_at INTEGER,
+                FOREIGN KEY(area_id) REFERENCES life_areas(id)
+            )",
+            [],
+        ).map_err(|e| format!("Failed to recreate action_items table: {}", e))?;
+        
+        conn.execute(
+            "INSERT INTO action_items (id, area_id, title, created_at)
+             SELECT id, area_id, title, created_at FROM action_items_old",
+            [],
+        ).map_err(|e| format!("Failed to migrate action_items data: {}", e))?;
+        
+        conn.execute("DROP TABLE action_items_old", [])
+            .map_err(|e| format!("Failed to drop old action_items table: {}", e))?;
+    }
+    
+    Ok(())
 }
 

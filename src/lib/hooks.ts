@@ -192,7 +192,7 @@ export function useAllLatestScores() {
   };
 }
 
-export function useActionItems(areaId?: number, statusFilter?: string) {
+export function useActionItems(areaId?: number) {
   const [items, setItems] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -207,7 +207,6 @@ export function useActionItems(areaId?: number, statusFilter?: string) {
       setLoading(true);
       const result = await invoke<ActionItem[]>("get_action_items_by_area", {
         areaId,
-        statusFilter: statusFilter || null,
       });
       setItems(result);
     } catch (err) {
@@ -216,26 +215,17 @@ export function useActionItems(areaId?: number, statusFilter?: string) {
     } finally {
       setLoading(false);
     }
-  }, [areaId, statusFilter]);
+  }, [areaId]);
 
   useEffect(() => {
     loadItems();
   }, [loadItems]);
 
-  const createItem = async (
-    areaId: number,
-    title: string,
-    description: string | undefined,
-    priority: string | undefined,
-    deadline: number | undefined
-  ) => {
+  const createItem = async (areaId: number, title: string) => {
     try {
       await invoke<ActionItem>("create_action_item", {
         areaId,
         title,
-        description: description || null,
-        priority: priority || null,
-        deadline: deadline || null,
       });
       await loadItems();
       toast.success("Action item created successfully");
@@ -246,22 +236,11 @@ export function useActionItems(areaId?: number, statusFilter?: string) {
     }
   };
 
-  const updateItem = async (
-    id: number,
-    title: string,
-    description: string | undefined,
-    status: string,
-    priority: string | undefined,
-    deadline: number | undefined
-  ) => {
+  const updateItem = async (id: number, title: string) => {
     try {
       await invoke<ActionItem>("update_action_item", {
         id,
         title,
-        description: description || null,
-        status,
-        priority: priority || null,
-        deadline: deadline || null,
       });
       await loadItems();
       toast.success("Action item updated successfully");
@@ -272,24 +251,13 @@ export function useActionItems(areaId?: number, statusFilter?: string) {
     }
   };
 
-  const deleteItem = async (id: number) => {
+  const archiveItem = async (id: number) => {
     try {
-      await invoke("delete_action_item", { id });
+      await invoke("archive_action_item", { id });
       await loadItems();
-      toast.success("Action item deleted");
+      toast.success("Action item archived");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete action item";
-      toast.error(message);
-      throw err;
-    }
-  };
-
-  const updateStatus = async (id: number, status: string) => {
-    try {
-      await invoke<ActionItem>("update_action_item_status", { id, status });
-      await loadItems();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update status";
+      const message = err instanceof Error ? err.message : "Failed to archive action item";
       toast.error(message);
       throw err;
     }
@@ -300,8 +268,7 @@ export function useActionItems(areaId?: number, statusFilter?: string) {
     loading,
     createItem,
     updateItem,
-    deleteItem,
-    updateStatus,
+    archiveItem,
     refresh: loadItems,
   };
 }
@@ -316,9 +283,7 @@ export function useAllActionItems(areaFilter?: number) {
       const result = await invoke<ActionItem[]>("get_all_action_items", {
         areaFilter: areaFilter || null,
       });
-      // Filter out completed items (status !== 'done') - backend already does this, but double-check
-      const filtered = result.filter(item => item.status !== 'done');
-      setItems(filtered);
+      setItems(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load action items";
       toast.error(message);

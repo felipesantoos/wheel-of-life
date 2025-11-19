@@ -20,11 +20,9 @@ export interface ActionItem {
   id: number;
   area_id: number;
   title: string;
-  description?: string;
-  status: 'todo' | 'in_progress' | 'done';
-  priority?: 'low' | 'medium' | 'high';
-  deadline?: number;
   created_at: number;
-  completed_at?: number;
+  archived_at?: number;
 }
+
+export type Page = "home" | "detail" | "manage" | "history";
 

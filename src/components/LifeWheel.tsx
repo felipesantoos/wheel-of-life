@@ -43,31 +43,6 @@ export default function LifeWheel({
   // Generate concentric circles (0-10)
   const circles = Array.from({ length: 11 }, (_, i) => i);
 
-  // Calculate path for a slice from center to outer edge of selected cell
-  const getSlicePath = (area: LifeArea, score: number) => {
-    const index = sortedAreas.indexOf(area);
-    const angle = startAngle + index * anglePerArea;
-    const nextAngle = startAngle + (index + 1) * anglePerArea;
-
-    // Calculate radius to outer edge of the selected cell
-    // If score is 1, we want to color cells 0 and 1, so go to outer edge of cell 1
-    // Outer edge of cell N is at (N+1)/10
-    const scoreRadius = minRadius + ((score + 1) / 10) * (maxRadius - minRadius);
-
-    // Outer arc (at outer edge of selected cell)
-    const outerStartX = centerX + scoreRadius * Math.cos(angle);
-    const outerStartY = centerY + scoreRadius * Math.sin(angle);
-    const outerEndX = centerX + scoreRadius * Math.cos(nextAngle);
-    const outerEndY = centerY + scoreRadius * Math.sin(nextAngle);
-
-    const largeArc = anglePerArea > Math.PI ? 1 : 0;
-
-    return `M ${centerX} ${centerY}
-            L ${outerStartX} ${outerStartY}
-            A ${scoreRadius} ${scoreRadius} 0 ${largeArc} 1 ${outerEndX} ${outerEndY}
-            Z`;
-  };
-
   // Calculate path for a specific cell (between two score levels)
   const getCellPath = (area: LifeArea, cellScore: number) => {
     const index = sortedAreas.indexOf(area);
@@ -107,40 +82,6 @@ export default function LifeWheel({
             Z`;
   };
 
-  // Calculate path for the unselected part (from outer edge of selected cell to outer edge of cell 10)
-  const getUnselectedPath = (area: LifeArea, score: number) => {
-    const index = sortedAreas.indexOf(area);
-    const angle = startAngle + index * anglePerArea;
-    const nextAngle = startAngle + (index + 1) * anglePerArea;
-
-    // Calculate radius to outer edge of selected cell (same as getSlicePath)
-    const scoreRadius = minRadius + ((score + 1) / 10) * (maxRadius - minRadius);
-    
-    // Outer edge of cell 10 (11/10) - same calculation as circle 10
-    const outerEdgeRadius = minRadius + ((10 + 1) / 10) * (maxRadius - minRadius);
-
-    // Outer arc (at outer edge of cell 10)
-    const outerStartX = centerX + outerEdgeRadius * Math.cos(angle);
-    const outerStartY = centerY + outerEdgeRadius * Math.sin(angle);
-    const outerEndX = centerX + outerEdgeRadius * Math.cos(nextAngle);
-    const outerEndY = centerY + outerEdgeRadius * Math.sin(nextAngle);
-
-    // Inner arc (at score radius)
-    const innerStartX = centerX + scoreRadius * Math.cos(nextAngle);
-    const innerStartY = centerY + scoreRadius * Math.sin(nextAngle);
-    const innerEndX = centerX + scoreRadius * Math.cos(angle);
-    const innerEndY = centerY + scoreRadius * Math.sin(angle);
-
-    const largeArc = anglePerArea > Math.PI ? 1 : 0;
-
-    return `M ${innerStartX} ${innerStartY}
-            L ${outerStartX} ${outerStartY}
-            A ${outerEdgeRadius} ${outerEdgeRadius} 0 ${largeArc} 1 ${outerEndX} ${outerEndY}
-            L ${innerEndX} ${innerEndY}
-            A ${scoreRadius} ${scoreRadius} 0 ${largeArc} 0 ${innerStartX} ${innerStartY}
-            Z`;
-  };
-
   // Get label position for area
   const getLabelPosition = (area: LifeArea) => {
     const index = sortedAreas.indexOf(area);
@@ -176,45 +117,42 @@ export default function LifeWheel({
         className="overflow-visible"
         style={{ cursor: onScoreClick ? "pointer" : "default" }}
       >
-        {/* Draw area slices first (background layer) */}
+        {/* Draw area slices by coloring each cell individually */}
         {sortedAreas.map((area) => {
           const score = scoreMap.get(area.id) ?? 0;
-          const path = getSlicePath(area, score);
           const labelPos = getLabelPosition(area);
           const index = sortedAreas.indexOf(area);
           const angle = startAngle + index * anglePerArea + anglePerArea / 2;
 
           return (
             <g key={area.id}>
-              {/* Unselected part (from score to max) - grey background */}
-              {score < 10 && (
-                <path
-                  d={getUnselectedPath(area, score)}
-                  fill="#f9fafb"
-                  stroke="none"
-                  className="pointer-events-none"
-                />
-              )}
-              {/* Selected part (from center to score) - area color */}
-              <path
-                d={path}
-                fill={area.color}
-                stroke="none"
-                className={cn(
-                  "transition-opacity hover:opacity-80",
-                  onAreaClick && !onScoreClick && "cursor-pointer hover:opacity-70"
-                )}
-                onClick={(e) => {
-                  if (onAreaClick && !onScoreClick) {
-                    e.stopPropagation();
-                    onAreaClick(area);
-                  }
-                }}
-              />
-              
+              {circles.map((circle) => {
+                const isFilled = circle <= score;
+                const cellPath = getCellPath(area, circle);
+                const fillColor = isFilled ? area.color : "#f9fafb";
+
+                return (
+                  <path
+                    key={`cell-${area.id}-${circle}`}
+                    d={cellPath}
+                    fill={fillColor}
+                    stroke="none"
+                    className={cn(
+                      isFilled && "transition-opacity hover:opacity-80",
+                      onAreaClick && !onScoreClick && "cursor-pointer hover:opacity-70"
+                    )}
+                    onClick={(e) => {
+                      if (onAreaClick && !onScoreClick) {
+                        e.stopPropagation();
+                        onAreaClick(area);
+                      }
+                    }}
+                  />
+                );
+              })}
+
               {/* Numbers 0-10 in each slice, positioned in the middle of each cell */}
               {circles.map((circle) => {
-                // Each cell represents a score value - ALL cells treated EXACTLY the same way
                 const radius = circle === 0
                   ? minRadius
                   : minRadius + (circle / 10) * (maxRadius - minRadius);
@@ -226,16 +164,13 @@ export default function LifeWheel({
                 const labelX = centerX + labelRadius * Math.cos(angle);
                 const labelY = centerY + labelRadius * Math.sin(angle);
                 
-                // Determine text color based on whether this cell is in selected (colored) or unselected (grey) area
-                // A cell is selected if the score is greater than or equal to the cell number
-                // ALL cells (0-10) treated the same way
                 const isInSelectedArea = circle <= score;
                 const backgroundColor = isInSelectedArea ? area.color : "#f9fafb";
                 const textColor = getContrastTextColor(backgroundColor);
                 
                 return (
                   <text
-                    key={circle}
+                    key={`label-${area.id}-${circle}`}
                     x={labelX}
                     y={labelY}
                     textAnchor="middle"
