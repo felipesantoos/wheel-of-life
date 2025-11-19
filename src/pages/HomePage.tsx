@@ -331,7 +331,11 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     const maxLines = titleLength > 60 ? 5 : titleLength > 40 ? 4 : 3;
 
     const card = (
-      <div className="w-[95px] h-[95px] post-it-wrapper">
+      <div 
+        className="w-[95px] h-[95px] post-it-wrapper select-none"
+        onPointerDown={(e) => handlePostItPointerDown(item.id, e)}
+        onPointerUp={(e) => handlePostItPointerUp(item, e)}
+      >
         <div className="post-it post-it--small group" style={postItTheme}>
           <div className="post-it__paper flex h-full flex-col gap-1 p-2 pb-3">
             <div
@@ -360,8 +364,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
         <SortablePostIt
           key={item.id}
           itemId={item.id}
-          onPointerDown={(e) => handlePostItPointerDown(item.id, e)}
-          onPointerUp={(e) => handlePostItPointerUp(item, e)}
         >
           {card}
         </SortablePostIt>
@@ -369,11 +371,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
 
     return (
-      <div
-        key={item.id}
-        onPointerDown={(e) => handlePostItPointerDown(item.id, e)}
-        onPointerUp={(e) => handlePostItPointerUp(item, e)}
-      >
+      <div key={item.id}>
         {card}
       </div>
     );
@@ -499,9 +497,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                 <p className="text-xs text-gray-500 mb-2">
                   Reordering is available only when viewing all areas.
                 </p>
-              )}
-              {isReordering && (
-                <p className="text-xs text-blue-600 mb-2">Saving order...</p>
               )}
               {canReorder ? (
                 <DndContext
@@ -737,13 +732,9 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 function SortablePostIt({
   itemId,
   children,
-  onPointerDown,
-  onPointerUp,
 }: {
   itemId: number;
   children: ReactNode;
-  onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void;
-  onPointerUp?: (event: React.PointerEvent<HTMLDivElement>) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
@@ -761,8 +752,6 @@ function SortablePostIt({
       style={style}
       {...attributes}
       {...listeners}
-      onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}
     >
       {children}
     </div>
