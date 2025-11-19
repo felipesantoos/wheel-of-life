@@ -235,18 +235,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
   };
 
-  const handleUpdateActionItem = async (_areaId: number, title: string) => {
-    if (!editingItem) return;
-    const trimmed = title.trim();
-    if (!trimmed) return;
-
-    const success = await updateActionItemTitle(editingItem.id, trimmed);
-    if (success) {
-      setShowActionItemModal(false);
-      setEditingItem(null);
-    }
-  };
-
   const handleArchiveActionItem = async (itemId: number) => {
     try {
       await invoke("archive_action_item", { id: itemId });
@@ -285,12 +273,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
     
     await handleArchiveActionItem(itemId);
-  };
-
-  const openExpandedModal = (item: ActionItem) => {
-    setExpandedItem(item);
-    setExpandedDraft(item.title);
-    setIsExpandedEditing(false);
   };
 
   const closeExpandedModal = () => {
@@ -449,8 +431,10 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             >
               {item.title}
             </div>
-            <div className="mt-auto text-right text-[9px] font-semibold uppercase tracking-wide opacity-80 mr-2">
-              <span>{area?.name || "Unknown Area"}</span>
+            <div className="mt-auto text-right text-[9px] font-semibold uppercase tracking-wide opacity-80 mr-2 overflow-hidden">
+              <span className="block truncate w-full" title={area?.name || "Unknown Area"}>
+                {area?.name || "Unknown Area"}
+              </span>
             </div>
           </div>
         </div>
@@ -739,99 +723,73 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                           {editDraft.length}/80
                         </span>
                       </div>
-                      {!editingItem ? (
-                        <div className="flex items-center gap-1.5">
-                          <select
-                            value={selectedAreaId || ""}
-                            onChange={(e) => {
-                              setSelectedAreaId(Number(e.target.value));
-                            }}
-                            className="bg-transparent border-0 text-[11px] uppercase tracking-wide opacity-80 focus:outline-none cursor-pointer appearance-none pr-4 hover:opacity-100 transition-opacity"
+                      <div className="relative" style={{ zIndex: 1000, overflow: 'visible' }}>
+                        <button
+                          ref={areaButtonRef}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowAreaDropdown(!showAreaDropdown);
+                          }}
+                          className="text-[11px] uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity cursor-pointer flex items-center gap-1"
+                          style={{ color: editPostItTheme["--post-it-text"] }}
+                        >
+                          {editArea?.name || "Select Area"}
+                          <svg 
+                            className="w-3 h-3 transition-transform" 
                             style={{ 
-                              color: editPostItTheme["--post-it-text"],
-                              backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4' opacity='0.5'/%3E%3C/svg%3E\")",
-                              backgroundRepeat: 'no-repeat',
-                              backgroundPosition: 'right center',
-                              backgroundSize: '0.7em 0.7em'
+                              transform: showAreaDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                              opacity: 0.6
+                            }}
+                            fill="none" 
+                            viewBox="0 0 20 20"
+                          >
+                            <path 
+                              stroke="currentColor" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth="1.5" 
+                              d="M6 8l4 4 4-4"
+                            />
+                          </svg>
+                        </button>
+                        {showAreaDropdown && dropdownPosition ? createPortal(
+                          <div 
+                            className="area-dropdown fixed bg-white rounded-md shadow-lg border border-gray-200 py-1 max-h-48 overflow-y-auto"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ 
+                              zIndex: 99999,
+                              position: 'fixed',
+                              top: `${dropdownPosition.top}px`,
+                              right: `${dropdownPosition.right}px`,
+                              width: 'auto',
+                              minWidth: '120px',
+                              maxWidth: '200px',
                             }}
                           >
                             {areas.map((area) => (
-                              <option key={area.id} value={area.id} style={{ color: "#1f2937" }}>
+                              <button
+                                key={area.id}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedAreaId(area.id);
+                                  setShowAreaDropdown(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                  selectedAreaId === area.id ? 'bg-gray-100 font-medium' : ''
+                                }`}
+                                style={{ 
+                                  color: selectedAreaId === area.id ? area.color : '#1f2937'
+                                }}
+                              >
                                 {area.name}
-                              </option>
+                              </button>
                             ))}
-                          </select>
-                          <Edit2 className="w-3 h-3 opacity-60" style={{ color: editPostItTheme["--post-it-text"] }} />
-                        </div>
-                      ) : (
-                        <div className="relative" style={{ zIndex: 1000, overflow: 'visible' }}>
-                          <button
-                            ref={areaButtonRef}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowAreaDropdown(!showAreaDropdown);
-                            }}
-                            className="text-[11px] uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity cursor-pointer flex items-center gap-1"
-                            style={{ color: editPostItTheme["--post-it-text"] }}
-                          >
-                            {editArea?.name || "Unknown Area"}
-                            <svg 
-                              className="w-3 h-3 transition-transform" 
-                              style={{ 
-                                transform: showAreaDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
-                                opacity: 0.6
-                              }}
-                              fill="none" 
-                              viewBox="0 0 20 20"
-                            >
-                              <path 
-                                stroke="currentColor" 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round" 
-                                strokeWidth="1.5" 
-                                d="M6 8l4 4 4-4"
-                              />
-                            </svg>
-                          </button>
-                          {showAreaDropdown && dropdownPosition && createPortal(
-                            <div 
-                              className="area-dropdown fixed bg-white rounded-md shadow-lg border border-gray-200 py-1 max-h-48 overflow-y-auto"
-                              onClick={(e) => e.stopPropagation()}
-                              style={{ 
-                                zIndex: 99999,
-                                position: 'fixed',
-                                top: `${dropdownPosition.top}px`,
-                                right: `${dropdownPosition.right}px`,
-                                width: 'auto',
-                                minWidth: '120px',
-                                maxWidth: '200px',
-                              }}
-                            >
-                              {areas.map((area) => (
-                                <button
-                                  key={area.id}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedAreaId(area.id);
-                                    setShowAreaDropdown(false);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                    selectedAreaId === area.id ? 'bg-gray-100 font-medium' : ''
-                                  }`}
-                                  style={{ 
-                                    color: selectedAreaId === area.id ? area.color : '#1f2937'
-                                  }}
-                                >
-                                  {area.name}
-                                </button>
-                              ))}
-                            </div>,
-                            document.body
-                          )}
-                        </div>
-                      )}
+                          </div>,
+                          document.body
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </div>
