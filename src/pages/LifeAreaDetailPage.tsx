@@ -26,6 +26,8 @@ export default function LifeAreaDetailPage({
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showResetScoresDialog, setShowResetScoresDialog] = useState(false);
   const [showResetActionItemsDialog, setShowResetActionItemsDialog] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [itemToArchive, setItemToArchive] = useState<number | null>(null);
 
   const { scores, latestScore, createScore, refresh: refreshScores } = useScores(areaId);
   const { items, createItem, updateItem, archiveItem, refresh: refreshItems } = useActionItems(areaId);
@@ -68,6 +70,19 @@ export default function LifeAreaDetailPage({
 
   const handleArchiveItem = async (id: number) => {
     await archiveItem(id);
+  };
+
+  const requestArchiveItem = (id: number) => {
+    setItemToArchive(id);
+    setShowArchiveDialog(true);
+  };
+
+  const confirmArchiveItem = async () => {
+    if (itemToArchive === null) return;
+    const id = itemToArchive;
+    setShowArchiveDialog(false);
+    setItemToArchive(null);
+    await handleArchiveItem(id);
   };
 
   const handleResetArea = async () => {
@@ -273,7 +288,7 @@ export default function LifeAreaDetailPage({
                   key={item.id}
                   item={item}
                   onEdit={() => handleEditItem(item)}
-                  onArchive={() => handleArchiveItem(item.id)}
+                  onArchive={() => requestArchiveItem(item.id)}
                 />
               ))}
             </div>
@@ -307,6 +322,18 @@ export default function LifeAreaDetailPage({
         cancelText="Cancel"
         onConfirm={handleResetActionItems}
         onCancel={() => setShowResetActionItemsDialog(false)}
+      />
+      <ConfirmDialog
+        isOpen={showArchiveDialog}
+        title="Archive Post-it"
+        message="Are you sure you want to archive this post-it? It will be hidden from the main list."
+        confirmText="Archive"
+        cancelText="Cancel"
+        onConfirm={confirmArchiveItem}
+        onCancel={() => {
+          setShowArchiveDialog(false);
+          setItemToArchive(null);
+        }}
       />
     </div>
   );

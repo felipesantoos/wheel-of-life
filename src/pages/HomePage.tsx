@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, ReactNode, useRef, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { useLifeAreas, useAllLatestScores, useAllActionItems } from "../lib/hooks";
 import LifeWheel from "../components/LifeWheel";
@@ -6,6 +7,7 @@ import { LifeArea, ActionItem, Page } from "../types";
 import { Settings, History, Plus, Edit2, Archive, X, Save } from "lucide-react";
 import { toast } from "sonner";
 import { getContrastTextColor } from "../lib/utils";
+import ConfirmDialog from "../components/ConfirmDialog";
 import {
   DndContext,
   PointerSensor,
@@ -44,6 +46,12 @@ export default function HomePage({ onNavigate }: HomePageProps) {
   const [isExpandedEditing, setIsExpandedEditing] = useState(false);
   const [expandedDraft, setExpandedDraft] = useState("");
   const [editDraft, setEditDraft] = useState("");
+  const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
+  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const areaButtonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
+  const [itemToArchive, setItemToArchive] = useState<number | null>(null);
 
   // Block background scroll when modal is open
   useEffect(() => {
@@ -62,15 +70,45 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     if (!showActionItemModal) {
       setEditingItem(null);
       setEditDraft("");
+      setSelectedAreaId(null);
+      setShowAreaDropdown(false);
+      setDropdownPosition(null);
+    } else if (!editingItem && areas.length > 0) {
+      // Initialize with first area when creating new item
+      setSelectedAreaId(areas[0].id);
+      setShowAreaDropdown(false);
+      setDropdownPosition(null);
     }
-  }, [showActionItemModal]);
+  }, [showActionItemModal, editingItem, areas]);
 
   // Initialize edit draft when editing item changes
   useEffect(() => {
     if (editingItem) {
       setEditDraft(editingItem.title);
+      setSelectedAreaId(editingItem.area_id);
+      setShowAreaDropdown(false);
+      setDropdownPosition(null);
     }
   }, [editingItem]);
+
+  // Calculate dropdown position when it opens
+  useEffect(() => {
+    if (showAreaDropdown) {
+      // Use a small timeout to ensure the DOM is ready and button is rendered
+      const timer = setTimeout(() => {
+        if (areaButtonRef.current) {
+          const rect = areaButtonRef.current.getBoundingClientRect();
+          setDropdownPosition({
+            top: rect.bottom + 4,
+            right: window.innerWidth - rect.right,
+          });
+        }
+      }, 0);
+      return () => clearTimeout(timer);
+    } else {
+      setDropdownPosition(null);
+    }
+  }, [showAreaDropdown]);
 
   useEffect(() => {
     const sorted = [...actionItems].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -224,6 +262,31 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
   };
 
+  const requestArchiveActionItem = (itemId: number) => {
+    setItemToArchive(itemId);
+    setShowArchiveDialog(true);
+  };
+
+  const confirmArchiveActionItem = async () => {
+    if (itemToArchive === null) return;
+    const itemId = itemToArchive;
+    setShowArchiveDialog(false);
+    setItemToArchive(null);
+    
+    // Close modals if open
+    if (editingItem?.id === itemId) {
+      setShowActionItemModal(false);
+      setEditingItem(null);
+      setEditDraft("");
+      setShowAreaDropdown(false);
+    }
+    if (expandedItem?.id === itemId) {
+      closeExpandedModal();
+    }
+    
+    await handleArchiveActionItem(itemId);
+  };
+
   const openExpandedModal = (item: ActionItem) => {
     setExpandedItem(item);
     setExpandedDraft(item.title);
@@ -260,18 +323,53 @@ export default function HomePage({ onNavigate }: HomePageProps) {
   };
 
   const handleEditSave = async () => {
-    if (!editingItem) return;
     const trimmed = editDraft.trim();
     if (!trimmed) {
       toast.error("Title cannot be empty");
       return;
     }
 
-    const success = await updateActionItemTitle(editingItem.id, trimmed);
-    if (success) {
-      setShowActionItemModal(false);
-      setEditingItem(null);
+    if (editingItem) {
+      // Update existing item
+      const titleChanged = trimmed !== editingItem.title.trim();
+      const areaChanged = selectedAreaId !== null && selectedAreaId !== editingItem.area_id;
+      
+      let titleSuccess = true;
+      if (titleChanged) {
+        titleSuccess = await updateActionItemTitle(editingItem.id, trimmed);
+      }
+      
+      if (titleSuccess && areaChanged) {
+        // Update area
+        try {
+          await invoke("update_action_item_area", {
+            id: editingItem.id,
+            areaId: selectedAreaId,
+          });
+          await refreshActionItems();
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Failed to update area";
+          toast.error(message);
+          return;
+        }
+      }
+      
+      if (titleSuccess) {
+        setShowActionItemModal(false);
+        setEditingItem(null);
+        setEditDraft("");
+        setShowAreaDropdown(false);
+      }
+    } else {
+      // Create new item
+      if (!selectedAreaId) {
+        toast.error("Please select an area");
+        return;
+      }
+      await handleCreateActionItem(selectedAreaId, trimmed);
       setEditDraft("");
+      setSelectedAreaId(null);
+      setShowAreaDropdown(false);
     }
   };
 
@@ -332,7 +430,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 
     const card = (
       <div 
-        className="w-[95px] h-[95px] post-it-wrapper select-none"
+        className="w-[95px] h-[95px] post-it-wrapper select-none cursor-pointer"
         onPointerDown={(e) => handlePostItPointerDown(item.id, e)}
         onPointerUp={(e) => handlePostItPointerUp(item, e)}
       >
@@ -524,36 +622,66 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 
       {/* Action Item Modal */}
       {showActionItemModal && (() => {
-        const editArea = editingItem ? areas.find((a) => a.id === editingItem.area_id) : null;
+        const editArea = selectedAreaId 
+          ? areas.find((a) => a.id === selectedAreaId)
+          : editingItem 
+            ? areas.find((a) => a.id === editingItem.area_id)
+            : null;
         const editPaperColor = editArea?.color || "#fef9c3";
         const editPostItTheme: CSSVars = {
           "--post-it-color": editPaperColor,
           "--post-it-text": getContrastTextColor(editPaperColor),
         };
-        const hasChanges = editingItem ? editDraft.trim() !== editingItem.title.trim() : false;
+        const hasChanges = editingItem 
+          ? editDraft.trim() !== editingItem.title.trim() || (selectedAreaId !== null && selectedAreaId !== editingItem.area_id)
+          : editDraft.trim().length > 0 && selectedAreaId !== null;
         return (
           <div 
-            className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50 px-4"
+            className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-[100] px-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowActionItemModal(false);
                 setEditingItem(null);
+                setEditDraft("");
+                setSelectedAreaId(null);
+                setShowAreaDropdown(false);
               }
             }}
           >
-            <div className="flex items-center justify-center w-full max-w-3xl">
+            <div 
+              className="flex items-center justify-center w-full max-w-3xl"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setShowActionItemModal(false);
+                  setEditingItem(null);
+                  setEditDraft("");
+                  setSelectedAreaId(null);
+                  setShowAreaDropdown(false);
+                }
+              }}
+            >
               <div
                 className="relative origin-center"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Close dropdown if clicking outside of it
+                  if (showAreaDropdown && !(e.target as HTMLElement).closest('.area-dropdown')) {
+                    setShowAreaDropdown(false);
+                  }
+                }}
                 style={{
                   transform: "rotate(-2deg)",
                   transformOrigin: "center",
+                  zIndex: 101,
                 }}
               >
                 <button
                   onClick={() => {
                     setShowActionItemModal(false);
                     setEditingItem(null);
+                    setEditDraft("");
+                    setSelectedAreaId(null);
+                    setShowAreaDropdown(false);
                   }}
                   className="absolute top-2 right-2 text-white/40 hover:text-white/70 transition-colors z-10 p-1"
                   aria-label="Close"
@@ -573,9 +701,10 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                         className="w-full h-full bg-transparent border-0 rounded-sm p-3 text-xl font-semibold leading-snug resize-none focus:outline-none focus:ring-0 placeholder-white/60"
                         maxLength={80}
                         autoFocus
+                        placeholder={editingItem ? "" : "Enter action item title..."}
                       />
                     </div>
-                    <div className="mt-auto flex items-center justify-between text-[11px] uppercase tracking-wide opacity-80 mb-2 px-3">
+                    <div className="mt-auto flex items-center justify-between text-[11px] uppercase tracking-wide opacity-80 mb-2 px-3" style={{ overflow: 'visible' }}>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -591,11 +720,118 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                         >
                           <Save className="w-6 h-6" />
                         </button>
+                        {editingItem && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              requestArchiveActionItem(editingItem.id);
+                            }}
+                            onPointerDown={handleActionButtonPointerDown}
+                            onPointerUp={handleActionButtonPointerUp}
+                            className="inline-flex items-center justify-center text-white/60 hover:text-white/90 transition-colors p-1"
+                            title="Archive"
+                          >
+                            <Archive className="w-6 h-6" />
+                          </button>
+                        )}
                         <span className="text-[10px] text-white/50">
                           {editDraft.length}/80
                         </span>
                       </div>
-                      <span>{editArea?.name || "Unknown Area"}</span>
+                      {!editingItem ? (
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={selectedAreaId || ""}
+                            onChange={(e) => {
+                              setSelectedAreaId(Number(e.target.value));
+                            }}
+                            className="bg-transparent border-0 text-[11px] uppercase tracking-wide opacity-80 focus:outline-none cursor-pointer appearance-none pr-4 hover:opacity-100 transition-opacity"
+                            style={{ 
+                              color: editPostItTheme["--post-it-text"],
+                              backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4' opacity='0.5'/%3E%3C/svg%3E\")",
+                              backgroundRepeat: 'no-repeat',
+                              backgroundPosition: 'right center',
+                              backgroundSize: '0.7em 0.7em'
+                            }}
+                          >
+                            {areas.map((area) => (
+                              <option key={area.id} value={area.id} style={{ color: "#1f2937" }}>
+                                {area.name}
+                              </option>
+                            ))}
+                          </select>
+                          <Edit2 className="w-3 h-3 opacity-60" style={{ color: editPostItTheme["--post-it-text"] }} />
+                        </div>
+                      ) : (
+                        <div className="relative" style={{ zIndex: 1000, overflow: 'visible' }}>
+                          <button
+                            ref={areaButtonRef}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowAreaDropdown(!showAreaDropdown);
+                            }}
+                            className="text-[11px] uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity cursor-pointer flex items-center gap-1"
+                            style={{ color: editPostItTheme["--post-it-text"] }}
+                          >
+                            {editArea?.name || "Unknown Area"}
+                            <svg 
+                              className="w-3 h-3 transition-transform" 
+                              style={{ 
+                                transform: showAreaDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                                opacity: 0.6
+                              }}
+                              fill="none" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path 
+                                stroke="currentColor" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                strokeWidth="1.5" 
+                                d="M6 8l4 4 4-4"
+                              />
+                            </svg>
+                          </button>
+                          {showAreaDropdown && dropdownPosition && createPortal(
+                            <div 
+                              className="area-dropdown fixed bg-white rounded-md shadow-lg border border-gray-200 py-1 max-h-48 overflow-y-auto"
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ 
+                                zIndex: 99999,
+                                position: 'fixed',
+                                top: `${dropdownPosition.top}px`,
+                                right: `${dropdownPosition.right}px`,
+                                width: 'auto',
+                                minWidth: '120px',
+                                maxWidth: '200px',
+                              }}
+                            >
+                              {areas.map((area) => (
+                                <button
+                                  key={area.id}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedAreaId(area.id);
+                                    setShowAreaDropdown(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                    selectedAreaId === area.id ? 'bg-gray-100 font-medium' : ''
+                                  }`}
+                                  style={{ 
+                                    color: selectedAreaId === area.id ? area.color : '#1f2937'
+                                  }}
+                                >
+                                  {area.name}
+                                </button>
+                              ))}
+                            </div>,
+                            document.body
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -706,8 +942,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                           aria-label="Arquivar ação"
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleArchiveActionItem(expandedItem.id);
-                            closeExpandedModal();
+                            requestArchiveActionItem(expandedItem.id);
                           }}
                           onPointerDown={handleActionButtonPointerDown}
                           onPointerUp={handleActionButtonPointerUp}
@@ -725,6 +960,20 @@ export default function HomePage({ onNavigate }: HomePageProps) {
           </div>
         </div>
       )}
+
+      {/* Archive Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showArchiveDialog}
+        title="Archive Post-it"
+        message="Are you sure you want to archive this post-it? It will be hidden from the main list."
+        confirmText="Archive"
+        cancelText="Cancel"
+        onConfirm={confirmArchiveActionItem}
+        onCancel={() => {
+          setShowArchiveDialog(false);
+          setItemToArchive(null);
+        }}
+      />
     </div>
   );
 }

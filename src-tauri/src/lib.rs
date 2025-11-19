@@ -471,6 +471,40 @@ fn update_action_item(id: i64, title: String) -> Result<ActionItem, String> {
 }
 
 #[tauri::command]
+fn update_action_item_area(id: i64, area_id: i64) -> Result<ActionItem, String> {
+    let conn = get_connection()?;
+
+    // Verify area exists
+    conn.query_row(
+        "SELECT id FROM life_areas WHERE id = ? AND is_active = 1",
+        params![area_id],
+        |row| Ok(row.get::<_, i64>(0)?),
+    )
+    .map_err(|_| "Area not found or inactive".to_string())?;
+
+    conn.execute(
+        "UPDATE action_items SET area_id = ?1 WHERE id = ?2",
+        params![area_id, id],
+    )
+    .map_err(|e| format!("Failed to update action item area: {}", e))?;
+
+    conn.query_row(
+        "SELECT id, area_id, title, created_at, position, archived_at FROM action_items WHERE id = ?",
+        params![id],
+        |row| {
+            Ok(ActionItem {
+                id: row.get(0)?,
+                area_id: row.get(1)?,
+                title: row.get(2)?,
+                created_at: row.get(3)?,
+                position: row.get(4)?,
+                archived_at: row.get(5)?,
+            })
+        },
+    ).map_err(|e| format!("Failed to get action item: {}", e))
+}
+
+#[tauri::command]
 fn archive_action_item(id: i64) -> Result<(), String> {
     let conn = get_connection()?;
     let now = Utc::now().timestamp();
@@ -608,6 +642,7 @@ pub fn run() {
             get_action_items_by_area,
             get_all_action_items,
             update_action_item,
+            update_action_item_area,
             reorder_action_items,
             archive_action_item,
             delete_action_item,
