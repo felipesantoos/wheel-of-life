@@ -23,6 +23,11 @@ a,
   cursor: pointer !important;
 }
 
+/* Disabled buttons should show not-allowed cursor */
+button:disabled {
+  cursor: not-allowed !important;
+}
+
 /* Move toaster close button to the right and reduce spacing */
 [data-sonner-toaster] {
   overflow: visible !important;
@@ -83,5 +88,88 @@ select.custom-select-xs {
   background-position: right 0.3rem center;
   background-size: 0.9em 0.9em;
   padding-right: 1.5rem;
+}
+
+/* --- Post-it styling ----------------------------------------------------- */
+.post-it {
+  --post-it-color: #fef9c3;
+  --post-it-text: #1f2937;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: var(--post-it-text);
+  display: flex;
+  background-color: #f9fafb; /* bg-gray-50 to match window background */
+  filter: drop-shadow(4px 6px 12px rgba(15, 23, 42, 0.18));
+  overflow: hidden;
+  border-radius: 12px 12px 18px 12px;
+  transition: transform 0.3s ease;
+}
+
+.post-it.group:hover {
+  transform: translateY(-0.125rem); /* -translate-y-0.5 = -0.125rem */
+}
+
+.post-it-wrapper {
+  background-color: transparent;
+  overflow: visible;
+}
+
+.post-it__paper {
+  position: relative;
+  flex: 1;
+  background: var(--post-it-color);
+  color: var(--post-it-text);
+  border-radius: 12px 12px 18px 12px;
+  box-shadow:
+    inset 0 -2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 100%;
+  will-change: transform;
+}
+
+.post-it__paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.4), transparent 55%),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 65%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 40%);
+  opacity: 0.65;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.post-it__paper::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  border-style: solid;
+  border-width: 0 0 28px 28px;
+  border-color: transparent transparent rgba(15, 23, 42, 0.18) transparent;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.post-it--small {
+  border-radius: 10px 10px 18px 8px;
+}
+
+.post-it--small .post-it__paper {
+  border-radius: 10px 10px 18px 8px;
+  padding-bottom: 0.75rem;
+}
+
+.post-it--large {
+  filter: drop-shadow(12px 18px 35px rgba(15, 23, 42, 0.35));
+  border-radius: 12px 12px 18px 12px;
+}
+
+.post-it--large .post-it__paper::after {
+  border-width: 0 0 40px 40px;
 }
 

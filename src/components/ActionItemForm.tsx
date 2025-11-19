@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { ActionItem, LifeArea } from "../types";
 import { X } from "lucide-react";
 
+const MAX_TITLE_LENGTH = 80;
+
 interface ActionItemFormProps {
   item?: ActionItem;
   areaId?: number;
@@ -95,8 +97,12 @@ export default function ActionItemForm({
           onChange={(e) => setTitle(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
+          maxLength={MAX_TITLE_LENGTH}
           placeholder="e.g., Exercise 3 times per week"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          {title.length}/{MAX_TITLE_LENGTH} characters
+        </p>
       </div>
 
       <div className="flex gap-2 pt-4">

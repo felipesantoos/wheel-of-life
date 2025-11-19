@@ -7,6 +7,8 @@ use models::{ActionItem, LifeArea, Score};
 use rusqlite::params;
 use serde::Deserialize;
 
+const MAX_ACTION_ITEM_TITLE_LENGTH: usize = 80;
+
 #[tauri::command]
 fn create_life_area(
     name: String,
@@ -301,6 +303,12 @@ fn create_action_item(area_id: i64, title: String) -> Result<ActionItem, String>
     if clean_title.is_empty() {
         return Err("Title cannot be empty".to_string());
     }
+    if clean_title.chars().count() > MAX_ACTION_ITEM_TITLE_LENGTH {
+        return Err(format!(
+            "Title cannot exceed {} characters",
+            MAX_ACTION_ITEM_TITLE_LENGTH
+        ));
+    }
 
     let conn = get_connection()?;
     let now = Utc::now().timestamp();
@@ -430,6 +438,12 @@ fn update_action_item(id: i64, title: String) -> Result<ActionItem, String> {
     let clean_title = title.trim();
     if clean_title.is_empty() {
         return Err("Title cannot be empty".to_string());
+    }
+    if clean_title.chars().count() > MAX_ACTION_ITEM_TITLE_LENGTH {
+        return Err(format!(
+            "Title cannot exceed {} characters",
+            MAX_ACTION_ITEM_TITLE_LENGTH
+        ));
     }
 
     let conn = get_connection()?;

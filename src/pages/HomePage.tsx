@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo, ReactNode } from "react";
+import { useState, useEffect, useMemo, ReactNode, useRef, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useLifeAreas, useAllLatestScores, useAllActionItems } from "../lib/hooks";
 import LifeWheel from "../components/LifeWheel";
-import ActionItemForm from "../components/ActionItemForm";
 import { LifeArea, ActionItem, Page } from "../types";
-import { Settings, History, Plus, Edit2, Archive } from "lucide-react";
+import { Settings, History, Plus, Edit2, Archive, X, Save } from "lucide-react";
 import { toast } from "sonner";
 import { getContrastTextColor } from "../lib/utils";
 import {
@@ -23,6 +22,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+type CSSVars = CSSProperties & Record<`--${string}`, string>;
+
 interface HomePageProps {
   onNavigate: (page: Page, data?: any) => void;
 }
@@ -37,25 +38,39 @@ export default function HomePage({ onNavigate }: HomePageProps) {
   const [editingItem, setEditingItem] = useState<ActionItem | null>(null);
   const [orderedItems, setOrderedItems] = useState<ActionItem[]>([]);
   const [isReordering, setIsReordering] = useState(false);
+  const [isDraggingPostIt, setIsDraggingPostIt] = useState(false);
+  const clickInfoRef = useRef<{ id: number; x: number; y: number; time: number } | null>(null);
+  const [expandedItem, setExpandedItem] = useState<ActionItem | null>(null);
+  const [isExpandedEditing, setIsExpandedEditing] = useState(false);
+  const [expandedDraft, setExpandedDraft] = useState("");
+  const [editDraft, setEditDraft] = useState("");
 
   // Block background scroll when modal is open
   useEffect(() => {
-    if (showActionItemModal) {
-      document.body.style.overflow = 'hidden';
+    if (showActionItemModal || expandedItem) {
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
-  }, [showActionItemModal]);
+  }, [showActionItemModal, expandedItem]);
 
   // Reset editing item when modal closes
   useEffect(() => {
     if (!showActionItemModal) {
       setEditingItem(null);
+      setEditDraft("");
     }
   }, [showActionItemModal]);
+
+  // Initialize edit draft when editing item changes
+  useEffect(() => {
+    if (editingItem) {
+      setEditDraft(editingItem.title);
+    }
+  }, [editingItem]);
 
   useEffect(() => {
     const sorted = [...actionItems].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -75,7 +90,14 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     return orderedItems.filter((item) => item.area_id === areaFilter);
   }, [orderedItems, areaFilter]);
 
-  const canReorder = !areaFilter && !actionItemsLoading && visibleItems.length > 1 && !isReordering;
+  const canReorder =
+    !areaFilter && !actionItemsLoading && visibleItems.length > 1 && !isReordering && !expandedItem;
+  const expandedArea = expandedItem ? areas.find((a) => a.id === expandedItem.area_id) : null;
+  const expandedPaperColor = expandedArea?.color || "#fef9c3";
+  const expandedPostItTheme: CSSVars = {
+    "--post-it-color": expandedPaperColor,
+    "--post-it-text": getContrastTextColor(expandedPaperColor),
+  };
 
   const handleAreaClick = (area: LifeArea) => {
     onNavigate("detail", { areaId: area.id });
@@ -97,6 +119,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    setIsDraggingPostIt(false);
     if (!canReorder) return;
     const { active, over } = event;
     if (!over || active.id === over.id) {
@@ -154,25 +177,35 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
   };
 
-  const handleUpdateActionItem = async (_areaId: number, title: string) => {
-    if (!editingItem) return;
-    
+  const updateActionItemTitle = async (itemId: number, title: string) => {
     try {
       await invoke("update_action_item", {
-        id: editingItem.id,
+        id: itemId,
         title,
       });
       await refreshActionItems();
-      setShowActionItemModal(false);
-      setEditingItem(null);
       toast.success("Action item updated successfully", {
-        id: `update-item-${Date.now()}`,
+        id: `update-item-${itemId}-${Date.now()}`,
       });
+      return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to update action item";
       toast.error(message, {
-        id: `update-item-error-${Date.now()}`,
+        id: `update-item-error-${itemId}-${Date.now()}`,
       });
+      return false;
+    }
+  };
+
+  const handleUpdateActionItem = async (_areaId: number, title: string) => {
+    if (!editingItem) return;
+    const trimmed = title.trim();
+    if (!trimmed) return;
+
+    const success = await updateActionItemTitle(editingItem.id, trimmed);
+    if (success) {
+      setShowActionItemModal(false);
+      setEditingItem(null);
     }
   };
 
@@ -191,44 +224,132 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
   };
 
+  const openExpandedModal = (item: ActionItem) => {
+    setExpandedItem(item);
+    setExpandedDraft(item.title);
+    setIsExpandedEditing(false);
+  };
+
+  const closeExpandedModal = () => {
+    setExpandedItem(null);
+    setIsExpandedEditing(false);
+    setExpandedDraft("");
+  };
+
+  const handleExpandedSave = async () => {
+    if (!expandedItem) return;
+    const trimmed = expandedDraft.trim();
+    if (!trimmed) {
+      toast.error("Title cannot be empty");
+      return;
+    }
+
+    const success = await updateActionItemTitle(expandedItem.id, trimmed);
+    if (success) {
+      setExpandedItem({ ...expandedItem, title: trimmed });
+      setExpandedDraft(trimmed);
+      setIsExpandedEditing(false);
+    }
+  };
+
+  const handleExpandedCancelEditing = () => {
+    if (expandedItem) {
+      setExpandedDraft(expandedItem.title);
+    }
+    setIsExpandedEditing(false);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingItem) return;
+    const trimmed = editDraft.trim();
+    if (!trimmed) {
+      toast.error("Title cannot be empty");
+      return;
+    }
+
+    const success = await updateActionItemTitle(editingItem.id, trimmed);
+    if (success) {
+      setShowActionItemModal(false);
+      setEditingItem(null);
+      setEditDraft("");
+    }
+  };
+
+  const handlePostItPointerDown = (itemId: number, event: React.PointerEvent) => {
+    if (event.button !== 0) return;
+    clickInfoRef.current = {
+      id: itemId,
+      x: event.clientX,
+      y: event.clientY,
+      time: performance.now(),
+    };
+  };
+
+  const handlePostItPointerUp = (item: ActionItem, event: React.PointerEvent) => {
+    if (event.button !== 0) return;
+    const info = clickInfoRef.current;
+    clickInfoRef.current = null;
+    if (!info || info.id !== item.id) return;
+    if (isDraggingPostIt) return;
+    const distance = Math.hypot(event.clientX - info.x, event.clientY - info.y);
+    const duration = performance.now() - info.time;
+    if (distance <= 5 && duration <= 300) {
+      setEditingItem(item);
+      setShowActionItemModal(true);
+    }
+  };
+
+  const handleActionButtonPointerDown = (event: React.PointerEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+  };
+
+  const handleActionButtonPointerUp = (event: React.PointerEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+  };
+
+  const handleDragStart = () => {
+    setIsDraggingPostIt(true);
+  };
+
+  const handleDragCancel = () => {
+    setIsDraggingPostIt(false);
+  };
+
   const renderPostIt = (item: ActionItem, draggable: boolean) => {
     const area = areas.find((a) => a.id === item.area_id);
     const areaColor = area?.color || "#e5e7eb";
     const textColor = getContrastTextColor(areaColor);
+    const postItTheme: CSSVars = {
+      "--post-it-color": areaColor,
+      "--post-it-text": textColor,
+    };
+
+    const titleLength = item.title.length;
+    const computedFontSize = Math.max(9, 12 - Math.floor(titleLength / 15));
+    const maxLines = titleLength > 60 ? 5 : titleLength > 40 ? 4 : 3;
 
     const card = (
-      <div className="w-[90px] h-[90px]">
-        <div
-          className="group relative flex h-full flex-col gap-1 p-1 border border-black/10 shadow-sm transition-all duration-300 hover:-translate-y-0.5"
-          style={{
-            backgroundColor: areaColor,
-            color: textColor,
-            boxShadow: "3px 4px 8px rgba(15,23,42,0.15)",
-            borderRadius: 0,
-          }}
-        >
-          <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-            <button
-              onClick={() => handleEditClick(item)}
-              className="p-1 rounded-full bg-black/10 text-white hover:bg-black/20 transition-colors"
-              title="Edit action item"
+      <div className="w-[95px] h-[95px] post-it-wrapper">
+        <div className="post-it post-it--small group" style={postItTheme}>
+          <div className="post-it__paper flex h-full flex-col gap-1 p-2 pb-3">
+            <div
+              className="mt-0.5 font-medium pr-1 overflow-hidden break-words"
+              style={{
+                fontSize: `${computedFontSize}px`,
+                lineHeight: 1.1,
+                display: "block",
+                maxHeight: `${maxLines * 1.2}em`,
+                wordBreak: "break-word",
+                hyphens: "auto",
+              }}
             >
-              <Edit2 className="w-3 h-3" />
-            </button>
-            <button
-              onClick={() => handleArchiveActionItem(item.id)}
-              className="p-1 rounded-full bg-black/10 text-white hover:bg-black/20 transition-colors"
-              title="Archive action item"
-            >
-              <Archive className="w-3 h-3" />
-            </button>
-          </div>
-
-          <div className="mt-0.5 text-xs font-medium leading-snug break-words pr-1">
-            {item.title}
-          </div>
-          <div className="mt-auto text-right text-[9px] font-semibold uppercase tracking-wide opacity-80">
-            <span>{area?.name || "Unknown Area"}</span>
+              {item.title}
+            </div>
+            <div className="mt-auto text-right text-[9px] font-semibold uppercase tracking-wide opacity-80 mr-2">
+              <span>{area?.name || "Unknown Area"}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -236,22 +357,26 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 
     if (draggable) {
       return (
-        <SortablePostIt key={item.id} itemId={item.id}>
+        <SortablePostIt
+          key={item.id}
+          itemId={item.id}
+          onPointerDown={(e) => handlePostItPointerDown(item.id, e)}
+          onPointerUp={(e) => handlePostItPointerUp(item, e)}
+        >
           {card}
         </SortablePostIt>
       );
     }
 
     return (
-      <div key={item.id}>
+      <div
+        key={item.id}
+        onPointerDown={(e) => handlePostItPointerDown(item.id, e)}
+        onPointerUp={(e) => handlePostItPointerUp(item, e)}
+      >
         {card}
       </div>
     );
-  };
-
-  const handleEditClick = (item: ActionItem) => {
-    setEditingItem(item);
-    setShowActionItemModal(true);
   };
 
   if (loading) {
@@ -369,7 +494,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               <p>{areaFilter ? "No action items for this area" : "No action items found"}</p>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto pr-1 mt-2">
+            <div className="flex-1 overflow-y-auto mt-2">
               {areaFilter && (
                 <p className="text-xs text-gray-500 mb-2">
                   Reordering is available only when viewing all areas.
@@ -379,15 +504,21 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                 <p className="text-xs text-blue-600 mb-2">Saving order...</p>
               )}
               {canReorder ? (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
+                >
                   <SortableContext items={visibleItems.map((item) => item.id)} strategy={rectSortingStrategy}>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-2 p-4">
                       {visibleItems.map((item) => renderPostIt(item, true))}
                     </div>
                   </SortableContext>
                 </DndContext>
               ) : (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-2 p-4">
                   {visibleItems.map((item) => renderPostIt(item, false))}
                 </div>
               )}
@@ -397,33 +528,204 @@ export default function HomePage({ onNavigate }: HomePageProps) {
       </div>
 
       {/* Action Item Modal */}
-      {showActionItemModal && (
-        <div 
-          className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50"
+      {showActionItemModal && (() => {
+        const editArea = editingItem ? areas.find((a) => a.id === editingItem.area_id) : null;
+        const editPaperColor = editArea?.color || "#fef9c3";
+        const editPostItTheme: CSSVars = {
+          "--post-it-color": editPaperColor,
+          "--post-it-text": getContrastTextColor(editPaperColor),
+        };
+        const hasChanges = editingItem ? editDraft.trim() !== editingItem.title.trim() : false;
+        return (
+          <div 
+            className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50 px-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowActionItemModal(false);
+                setEditingItem(null);
+              }
+            }}
+          >
+            <div className="flex items-center justify-center w-full max-w-3xl">
+              <div
+                className="relative origin-center"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  transform: "rotate(-2deg)",
+                  transformOrigin: "center",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setShowActionItemModal(false);
+                    setEditingItem(null);
+                  }}
+                  className="absolute top-2 right-2 text-white/40 hover:text-white/70 transition-colors z-10 p-1"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                <div
+                  className="post-it post-it--large w-[360px] aspect-square sm:w-[420px]"
+                  style={editPostItTheme}
+                >
+                  <div className="post-it__paper flex h-full flex-col gap-4 p-5 sm:p-6">
+                    <div className="flex-1 overflow-y-auto pr-2">
+                      <textarea
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        className="w-full h-full bg-transparent border-0 rounded-sm p-3 text-xl font-semibold leading-snug resize-none focus:outline-none focus:ring-0 placeholder-white/60"
+                        maxLength={80}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="mt-auto flex items-center justify-between text-[11px] uppercase tracking-wide opacity-80 mb-2 px-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEditSave();
+                          }}
+                          onPointerDown={handleActionButtonPointerDown}
+                          onPointerUp={handleActionButtonPointerUp}
+                          disabled={!hasChanges}
+                          className="inline-flex items-center justify-center text-white/60 hover:text-white/90 transition-colors disabled:opacity-30 p-1"
+                          title="Save"
+                        >
+                          <Save className="w-6 h-6" />
+                        </button>
+                        <span className="text-[10px] text-white/50">
+                          {editDraft.length}/80
+                        </span>
+                      </div>
+                      <span>{editArea?.name || "Unknown Area"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Expanded Action Item Modal */}
+      {expandedItem && (
+        <div
+          className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50 px-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              setShowActionItemModal(false);
+              closeExpandedModal();
             }
           }}
         >
-          <div 
-            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <ActionItemForm
-                item={editingItem || undefined}
-                areaId={editingItem?.area_id}
-                areas={areas}
-                showAreaSelector={!editingItem}
-                showHeader={true}
-                showCardWrapper={false}
-                onSubmit={editingItem ? handleUpdateActionItem : handleCreateActionItem}
-                onCancel={() => {
-                  setShowActionItemModal(false);
-                  setEditingItem(null);
-                }}
-              />
+          <div className="flex items-center justify-center w-full max-w-3xl">
+            <div
+              className="relative origin-center animate-[pop_0.2s_ease-out]"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                transform: "rotate(-2deg)",
+                transformOrigin: "center",
+              }}
+            >
+              <button
+                onClick={closeExpandedModal}
+                className="absolute -top-5 -right-5 bg-black/70 text-white rounded-full p-2 hover:bg-black transition-colors z-10"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div
+                className="post-it post-it--large group w-[360px] h-[360px] sm:w-[420px] sm:h-[420px]"
+                style={expandedPostItTheme}
+              >
+                <div className="post-it__paper flex h-full flex-col gap-4 p-5 sm:p-6">
+                  <div className="flex-1 overflow-y-auto pr-2">
+                    {isExpandedEditing ? (
+                      <textarea
+                        value={expandedDraft}
+                        onChange={(e) => setExpandedDraft(e.target.value)}
+                        className="w-full h-full bg-transparent border border-white/40 rounded-sm p-3 text-xl font-semibold leading-snug resize-none focus:outline-none focus:ring-2 focus:ring-white/70 placeholder-white/60"
+                        maxLength={80}
+                        autoFocus
+                      />
+                    ) : (
+                      <p className="text-xl font-semibold whitespace-pre-wrap break-words leading-snug">
+                        {expandedItem.title}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-auto flex items-center justify-end text-[11px] uppercase tracking-wide opacity-80 mb-2 mr-3">
+                    <span>{expandedArea?.name || "Unknown Area"}</span>
+                  </div>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-start gap-2 px-5 py-3 bg-gradient-to-t from-black/65 via-black/25 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-95 group-hover:pointer-events-auto" style={{ backgroundColor: 'transparent' }}>
+                    {isExpandedEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleExpandedSave();
+                          }}
+                          onPointerDown={handleActionButtonPointerDown}
+                          onPointerUp={handleActionButtonPointerUp}
+                          className="pointer-events-auto inline-flex items-center justify-center rounded-full bg-white/80 px-4 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-white"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleExpandedCancelEditing();
+                          }}
+                          onPointerDown={handleActionButtonPointerDown}
+                          onPointerUp={handleActionButtonPointerUp}
+                          className="pointer-events-auto inline-flex items-center justify-center rounded-full bg-white/25 px-4 py-1.5 text-xs text-white transition-colors hover:bg-white/45"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          aria-label="Editar ação"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setEditingItem(expandedItem);
+                            setShowActionItemModal(true);
+                            closeExpandedModal();
+                          }}
+                          onPointerDown={handleActionButtonPointerDown}
+                          onPointerUp={handleActionButtonPointerUp}
+                          className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white transition-colors hover:bg-white/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                          title="Edit action item"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Arquivar ação"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleArchiveActionItem(expandedItem.id);
+                            closeExpandedModal();
+                          }}
+                          onPointerDown={handleActionButtonPointerDown}
+                          onPointerUp={handleActionButtonPointerUp}
+                          className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white transition-colors hover:bg-white/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                          title="Archive action item"
+                        >
+                          <Archive className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -432,7 +734,17 @@ export default function HomePage({ onNavigate }: HomePageProps) {
   );
 }
 
-function SortablePostIt({ itemId, children }: { itemId: number; children: ReactNode }) {
+function SortablePostIt({
+  itemId,
+  children,
+  onPointerDown,
+  onPointerUp,
+}: {
+  itemId: number;
+  children: ReactNode;
+  onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerUp?: (event: React.PointerEvent<HTMLDivElement>) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
   });
@@ -444,7 +756,14 @@ function SortablePostIt({ itemId, children }: { itemId: number; children: ReactN
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+    >
       {children}
     </div>
   );
