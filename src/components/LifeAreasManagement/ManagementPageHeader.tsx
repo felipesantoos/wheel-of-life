@@ -28,8 +28,7 @@ export default function ManagementPageHeader({
           Create, edit, and organize your life areas
         </p>
       </div>
-      {!showForm && (
-        <div className="flex gap-2">
+      <div className="flex gap-2">
           <button
             onClick={onResetClick}
             className="relative px-4 py-2 text-white rounded-lg transition-colors shadow-md overflow-hidden hover:opacity-90 flex items-center gap-2"
@@ -101,7 +100,6 @@ export default function ManagementPageHeader({
             <span className="relative z-10">Create Area</span>
           </button>
         </div>
-      )}
     </div>
   );
 }
