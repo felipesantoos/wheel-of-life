@@ -42,7 +42,7 @@ export default function ActiveAreasSection({
       <h2 className="text-xl font-semibold text-gray-900 mb-4">
         Active Areas ({areas.length})
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-2">
         {areas.map((area) => {
           const score = scores.find((s) => s.area_id === area.id);
           return (

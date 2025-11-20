@@ -1,6 +1,7 @@
 import { LifeArea, Score } from "../../types";
 import LifeAreaCard from "../LifeAreas/LifeAreaCard";
 import { Edit2, Archive, RotateCcw } from "lucide-react";
+import { getContrastTextColor } from "../../lib/utils";
 
 interface LifeAreaCardWithActionsProps {
   area: LifeArea;
@@ -21,6 +22,8 @@ export default function LifeAreaCardWithActions({
   onRestore,
   isArchived = false,
 }: LifeAreaCardWithActionsProps) {
+  const textColor = getContrastTextColor(area.color);
+
   return (
     <div className={`relative ${isArchived ? "opacity-60" : ""}`}>
       <LifeAreaCard
@@ -37,7 +40,8 @@ export default function LifeAreaCardWithActions({
                   e.stopPropagation();
                   onEdit();
                 }}
-                className="p-1.5 bg-white rounded shadow-sm text-gray-600 hover:text-blue-600 transition-colors"
+                className="p-1.5 rounded transition-colors opacity-70 hover:opacity-100"
+                style={{ color: textColor }}
               >
                 <Edit2 className="w-4 h-4" />
               </button>
@@ -48,7 +52,8 @@ export default function LifeAreaCardWithActions({
                   e.stopPropagation();
                   onArchive();
                 }}
-                className="p-1.5 bg-white rounded shadow-sm text-gray-600 hover:text-orange-600 transition-colors"
+                className="p-1.5 rounded transition-colors opacity-70 hover:opacity-100"
+                style={{ color: textColor }}
               >
                 <Archive className="w-4 h-4" />
               </button>
@@ -61,7 +66,8 @@ export default function LifeAreaCardWithActions({
               e.stopPropagation();
               onRestore();
             }}
-            className="p-1.5 bg-white rounded shadow-sm text-gray-600 hover:text-green-600 transition-colors"
+            className="p-1.5 rounded transition-colors opacity-70 hover:opacity-100"
+            style={{ color: textColor }}
           >
             <RotateCcw className="w-4 h-4" />
           </button>

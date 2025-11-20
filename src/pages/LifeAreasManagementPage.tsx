@@ -101,7 +101,7 @@ export default function LifeAreasManagementPage({
           />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-6">
+        <div className="flex-1 overflow-y-auto space-y-6 p-4">
           <ActiveAreasSection
             areas={activeAreas}
             scores={scores}
