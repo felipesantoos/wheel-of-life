@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, type CSSProperties } from "react";
 import { DndContext, closestCenter, type DndContextProps } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 
@@ -38,12 +38,40 @@ export function ActionItemsPanel({
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-900">Action Items</h2>
         <div className="flex gap-2">
-          <button
+          <div
             onClick={onCreateClick}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+            className="relative px-3 py-1.5 text-white rounded-md transition-colors flex items-center gap-2 text-sm shadow-md overflow-hidden hover:opacity-90 cursor-pointer"
+            style={{
+              backgroundColor: "#3b82f6", // Blue
+            } as CSSProperties}
           >
-            New Action
-          </button>
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.4), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 65%), linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 40%)",
+                opacity: 0.65,
+                mixBlendMode: "screen",
+              } as CSSProperties}
+            />
+            <div
+              className="absolute bottom-0 right-0 pointer-events-none"
+              style={{
+                borderStyle: "solid",
+                borderWidth: "0 0 20px 20px",
+                borderColor: "transparent transparent rgba(15, 23, 42, 0.18) transparent",
+                opacity: 0.35,
+              } as CSSProperties}
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                boxShadow:
+                  "inset 0 -2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+              } as CSSProperties}
+            />
+            <span className="relative z-10">New Action</span>
+          </div>
           <select
             value={areaFilter ?? ""}
             onChange={(e) => onAreaFilterChange(e.target.value ? Number(e.target.value) : undefined)}
