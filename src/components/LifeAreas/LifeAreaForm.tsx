@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LifeArea } from "../types";
+import { LifeArea } from "../../types";
 import { X } from "lucide-react";
 
 interface LifeAreaFormProps {

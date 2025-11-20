@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ActionItem } from "../../types";
-import ActionItemCard from "../ActionItemCard";
-import ActionItemForm from "../ActionItemForm";
+import ActionItemCard from "../ActionItems/ActionItemCard";
+import ActionItemForm from "../ActionItems/ActionItemForm";
 import { Plus } from "lucide-react";
 
 interface ActionItemsSectionProps {

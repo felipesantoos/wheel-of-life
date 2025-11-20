@@ -1,6 +1,6 @@
 import { LifeArea, Score } from "../../types";
 import { formatDate } from "../../lib/utils";
-import ScoreHistoryChart from "../ScoreHistoryChart";
+import ScoreHistoryChart from "../Scores/ScoreHistoryChart";
 
 interface ScoreHistorySectionProps {
   area: LifeArea;

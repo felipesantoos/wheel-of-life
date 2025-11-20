@@ -1,7 +1,7 @@
-import { ActionItem } from "../types";
-import { formatDate } from "../lib/utils";
+import { ActionItem } from "../../types";
+import { formatDate } from "../../lib/utils";
 import { Edit2, Archive } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 
 interface ActionItemCardProps {
   item: ActionItem;

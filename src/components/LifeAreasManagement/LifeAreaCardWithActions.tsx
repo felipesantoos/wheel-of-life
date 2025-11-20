@@ -1,5 +1,5 @@
 import { LifeArea, Score } from "../../types";
-import LifeAreaCard from "../LifeAreaCard";
+import LifeAreaCard from "../LifeAreas/LifeAreaCard";
 import { Edit2, Archive, RotateCcw } from "lucide-react";
 
 interface LifeAreaCardWithActionsProps {

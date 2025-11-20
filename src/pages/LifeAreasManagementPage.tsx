@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useLifeAreas, useAllLatestScores, useResetAllData } from "../lib/hooks";
 import { LifeArea, Page } from "../types";
-import LifeAreaForm from "../components/LifeAreaForm";
-import ConfirmDialog from "../components/ConfirmDialog";
+import LifeAreaForm from "../components/LifeAreas/LifeAreaForm";
+import ConfirmDialog from "../components/common/ConfirmDialog";
 import ManagementPageHeader from "../components/LifeAreasManagement/ManagementPageHeader";
 import ActiveAreasSection from "../components/LifeAreasManagement/ActiveAreasSection";
 import ArchivedAreasSection from "../components/LifeAreasManagement/ArchivedAreasSection";

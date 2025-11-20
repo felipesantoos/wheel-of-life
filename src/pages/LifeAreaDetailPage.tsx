@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useScores, useActionItems, useResetAreaData, useResetAreaScores, useResetAreaActionItems } from "../lib/hooks";
 import { LifeArea, ActionItem, Page } from "../types";
-import ConfirmDialog from "../components/ConfirmDialog";
+import ConfirmDialog from "../components/common/ConfirmDialog";
 import DetailPageHeader from "../components/LifeAreaDetail/DetailPageHeader";
 import CurrentScoreSection from "../components/LifeAreaDetail/CurrentScoreSection";
 import ScoreHistorySection from "../components/LifeAreaDetail/ScoreHistorySection";

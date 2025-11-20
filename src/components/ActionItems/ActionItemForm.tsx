@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ActionItem, LifeArea } from "../types";
+import { ActionItem, LifeArea } from "../../types";
 import { X } from "lucide-react";
 
 const MAX_TITLE_LENGTH = 80;

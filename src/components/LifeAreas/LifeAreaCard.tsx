@@ -1,5 +1,5 @@
-import { LifeArea } from "../types";
-import { cn } from "../lib/utils";
+import { LifeArea } from "../../types";
+import { cn } from "../../lib/utils";
 
 interface LifeAreaCardProps {
   area: LifeArea;

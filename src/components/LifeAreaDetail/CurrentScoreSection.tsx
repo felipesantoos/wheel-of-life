@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { LifeArea, Score } from "../../types";
 import { formatDate } from "../../lib/utils";
-import ScoreForm from "../ScoreForm";
+import ScoreForm from "../Scores/ScoreForm";
 import { Plus } from "lucide-react";
 
 interface CurrentScoreSectionProps {

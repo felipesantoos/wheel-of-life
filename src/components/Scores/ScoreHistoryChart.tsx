@@ -1,6 +1,6 @@
-import { Score } from "../types";
+import { Score } from "../../types";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { formatDateShort } from "../lib/utils";
+import { formatDateShort } from "../../lib/utils";
 
 interface ScoreHistoryChartProps {
   scores: Score[];
