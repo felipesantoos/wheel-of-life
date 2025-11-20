@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLifeAreas, useAllLatestScores, useResetAllData } from "../lib/hooks";
 import { LifeArea, Page } from "../types";
-import LifeAreaForm from "../components/LifeAreas/LifeAreaForm";
+import LifeAreaFormModal from "../components/LifeAreas/LifeAreaFormModal";
 import ConfirmDialog from "../components/common/ConfirmDialog";
 import ManagementPageHeader from "../components/LifeAreasManagement/ManagementPageHeader";
 import ActiveAreasSection from "../components/LifeAreasManagement/ActiveAreasSection";
@@ -88,34 +88,32 @@ export default function LifeAreasManagementPage({
         showForm={showForm}
       />
 
-      {showForm ? (
-        <div className="flex-1 overflow-y-auto">
-          <LifeAreaForm
-            area={editingArea || undefined}
-            onSubmit={editingArea ? handleUpdate : handleCreate}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingArea(null);
-            }}
-            maxOrder={maxOrder}
-          />
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto space-y-6 p-4">
-          <ActiveAreasSection
-            areas={activeAreas}
-            scores={scores}
-            onAreaClick={(areaId) => onNavigate("detail", { areaId })}
-            onEdit={handleEdit}
-            onArchive={handleArchive}
-            onCreateFirst={() => setShowForm(true)}
-          />
+      <div className="flex-1 overflow-y-auto space-y-6 p-4">
+        <ActiveAreasSection
+          areas={activeAreas}
+          scores={scores}
+          onAreaClick={(areaId) => onNavigate("detail", { areaId })}
+          onEdit={handleEdit}
+          onArchive={handleArchive}
+          onCreateFirst={() => setShowForm(true)}
+        />
 
-          <ArchivedAreasSection
-            areas={archivedAreas}
-            onRestore={handleRestore}
-          />
-        </div>
+        <ArchivedAreasSection
+          areas={archivedAreas}
+          onRestore={handleRestore}
+        />
+      </div>
+
+      {showForm && (
+        <LifeAreaFormModal
+          area={editingArea || undefined}
+          onSubmit={editingArea ? handleUpdate : handleCreate}
+          onClose={() => {
+            setShowForm(false);
+            setEditingArea(null);
+          }}
+          maxOrder={maxOrder}
+        />
       )}
 
       <ConfirmDialog
