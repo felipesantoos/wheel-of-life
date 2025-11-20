@@ -18,6 +18,7 @@ export default function LifeWheel({
   size = 500,
 }: LifeWheelProps) {
   const [hoveredCell, setHoveredCell] = useState<{ areaId: number; score: number } | null>(null);
+  const [hoveredLabel, setHoveredLabel] = useState<number | null>(null);
 
   const scoreMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -187,18 +188,16 @@ export default function LifeWheel({
               })}
               
               {/* Label - clickable to view area details */}
-              <text
-                x={labelPos.x}
-                y={labelPos.y}
-                textAnchor="middle"
-                dominantBaseline="middle"
+              <g
                 className={cn(
-                  "text-xs font-medium select-none",
+                  "select-none transition-all duration-200",
                   onAreaClick && "cursor-pointer"
                 )}
+                transform={`translate(${labelPos.x}, ${labelPos.y})`}
                 style={{
-                  fill: "black",
-                  opacity: onAreaClick ? 1 : 0.9
+                  transform: hoveredLabel === area.id 
+                    ? `translate(${labelPos.x}px, ${labelPos.y}px) scale(1.2)` 
+                    : `translate(${labelPos.x}px, ${labelPos.y}px) scale(1)`,
                 }}
                 onClick={(e) => {
                   if (onAreaClick) {
@@ -206,19 +205,35 @@ export default function LifeWheel({
                     onAreaClick(area);
                   }
                 }}
-                onMouseEnter={(e) => {
+                onMouseEnter={() => {
                   if (onAreaClick) {
-                    e.currentTarget.style.opacity = "1";
+                    setHoveredLabel(area.id);
                   }
                 }}
-                onMouseLeave={(e) => {
+                onMouseLeave={() => {
                   if (onAreaClick) {
-                    e.currentTarget.style.opacity = "0.9";
+                    setHoveredLabel(null);
                   }
                 }}
               >
-                {area.name}
-              </text>
+                <text
+                  x={0}
+                  y={0}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="text-xs font-medium transition-all duration-200"
+                  style={{
+                    fill: hoveredLabel === area.id ? area.color : (onAreaClick ? area.color : "black"),
+                    opacity: hoveredLabel === area.id ? 1 : (onAreaClick ? 0.9 : 0.9),
+                    fontWeight: hoveredLabel === area.id ? "700" : "500",
+                    textShadow: hoveredLabel === area.id 
+                      ? "0 2px 4px rgba(0,0,0,0.2)" 
+                      : "0 1px 2px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  {area.name}
+                </text>
+              </g>
             </g>
           );
         })}
