@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Edit2, Archive, X, Save } from "lucide-react";
 import { ActionItem, LifeArea } from "../../types";
 import { getContrastTextColor } from "../../lib/utils";
@@ -29,6 +30,17 @@ export function ExpandedItemModal({
   onArchive,
   onEditInModal,
 }: ExpandedItemModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (item && containerRef.current) {
+      const element = containerRef.current;
+      element.style.animation = 'none';
+      void element.offsetWidth;
+      element.style.animation = 'paperOpen 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+    }
+  }, [item]);
+
   if (!item) return null;
 
   const paperColor = area?.color || "#fef9c3";
@@ -47,7 +59,16 @@ export function ExpandedItemModal({
       }}
     >
       <div className="flex items-center justify-center w-full max-w-3xl">
-        <div className="relative origin-center animate-[pop_0.2s_ease-out]" onClick={(e) => e.stopPropagation()} style={{ transform: "rotate(-2deg)" }}>
+        <div 
+          ref={containerRef}
+          className="relative" 
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            transformOrigin: 'center center',
+            opacity: 0,
+            transform: 'scale(0.7) rotate(-5deg)',
+          }}
+        >
           <button
             onClick={onClose}
             className="absolute -top-5 -right-5 bg-black/70 text-white rounded-full p-2 hover:bg-black transition-colors z-10"
@@ -68,7 +89,7 @@ export function ExpandedItemModal({
                     autoFocus
                   />
                 ) : (
-                  <p className="text-xl font-semibold whitespace-pre-wrap break-words leading-snug">{item.title}</p>
+                  <p className="text-xl font-semibold whitespace-pre-wrap break-words leading-snug">{item?.title || ''}</p>
                 )}
               </div>
               <div className="mt-auto flex items-center justify-end text-[11px] uppercase tracking-wide opacity-80 mb-2 mr-3">

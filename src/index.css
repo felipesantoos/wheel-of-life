@@ -173,3 +173,18 @@ select.custom-select-xs {
   border-width: 0 0 40px 40px;
 }
 
+/* Paper open animation - simulates paper being unfolded/opened */
+@keyframes paperOpen {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) rotate(-5deg);
+  }
+  50% {
+    transform: scale(1.02) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-2deg);
+  }
+}
+

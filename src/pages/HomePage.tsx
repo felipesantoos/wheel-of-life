@@ -63,18 +63,17 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     (item: ActionItem, draggable: boolean) => {
       const area = areaMap.get(item.area_id);
       const baseProps = {
-        key: item.id,
         item,
         area,
         onPointerDown: handlePostItPointerDown,
         onPointerUp: handlePostItPointerUp,
-        onDoubleClick: openExpandedModal,
+        onDoubleClick: undefined,
       };
 
       return draggable ? (
-        <SortablePostItCard itemId={item.id} {...baseProps} />
+        <SortablePostItCard key={item.id} itemId={item.id} {...baseProps} />
       ) : (
-        <PostItCard {...baseProps} />
+        <PostItCard key={item.id} {...baseProps} />
       );
     },
     [areaMap, handlePostItPointerDown, handlePostItPointerUp, openExpandedModal]
@@ -170,19 +169,21 @@ export default function HomePage({ onNavigate }: HomePageProps) {
         onArchive={editingItem ? () => requestArchiveActionItem(editingItem.id) : undefined}
       />
 
-      <ExpandedItemModal
-        item={expandedItem}
-        area={expandedArea}
-        isEditing={isExpandedEditing}
-        draft={expandedDraft}
-        onDraftChange={setExpandedDraft}
-        onClose={closeExpandedModal}
-        onSave={handleExpandedSave}
-        onCancelEditing={handleExpandedCancelEditing}
-        onStartEditing={() => setIsExpandedEditing(true)}
-        onArchive={() => expandedItem && requestArchiveActionItem(expandedItem.id)}
-        onEditInModal={openEditFromExpanded}
-      />
+      {expandedItem && (
+        <ExpandedItemModal
+          item={expandedItem}
+          area={expandedArea}
+          isEditing={isExpandedEditing}
+          draft={expandedDraft}
+          onDraftChange={setExpandedDraft}
+          onClose={closeExpandedModal}
+          onSave={handleExpandedSave}
+          onCancelEditing={handleExpandedCancelEditing}
+          onStartEditing={() => setIsExpandedEditing(true)}
+          onArchive={() => expandedItem && requestArchiveActionItem(expandedItem.id)}
+          onEditInModal={openEditFromExpanded}
+        />
+      )}
 
       <ConfirmArchiveDialog isOpen={showArchiveDialog} onConfirm={confirmArchiveActionItem} onCancel={cancelArchiveAction} />
     </div>

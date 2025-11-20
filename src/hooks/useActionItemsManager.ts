@@ -292,6 +292,12 @@ export function useActionItemsManager({ onNavigate }: UseActionItemsManagerOptio
     [canReorder, orderedItems, refreshActionItems, reorderActionItems]
   );
 
+  const openExpandedModal = useCallback((item: ActionItem) => {
+    setExpandedItem(item);
+    setExpandedDraft(item.title);
+    setIsExpandedEditing(false);
+  }, []);
+
   const handlePostItPointerDown = useCallback((itemId: number, event: React.PointerEvent) => {
     if (event.button !== 0) return;
     clickInfoRef.current = {
@@ -353,12 +359,6 @@ export function useActionItemsManager({ onNavigate }: UseActionItemsManagerOptio
   const cancelArchiveAction = useCallback(() => {
     setShowArchiveDialog(false);
     setItemToArchive(null);
-  }, []);
-
-  const openExpandedModal = useCallback((item: ActionItem) => {
-    setExpandedItem(item);
-    setExpandedDraft(item.title);
-    setIsExpandedEditing(false);
   }, []);
 
   const closeExpandedModal = useCallback(() => {

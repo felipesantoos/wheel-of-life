@@ -20,6 +20,7 @@ export function ActionItemModal({ isOpen, areas, editingItem, onSave, onClose, o
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
   const areaButtonRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -44,6 +45,15 @@ export function ActionItemModal({ isOpen, areas, editingItem, onSave, onClose, o
       setDropdownPosition(null);
     }
   }, [dropdownOpen]);
+
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const element = containerRef.current;
+      element.style.animation = 'none';
+      void element.offsetWidth;
+      element.style.animation = 'paperOpen 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+    }
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -85,6 +95,7 @@ export function ActionItemModal({ isOpen, areas, editingItem, onSave, onClose, o
         }}
       >
         <div
+          ref={containerRef}
           className="relative origin-center"
           onClick={(e) => {
             e.stopPropagation();
@@ -93,14 +104,16 @@ export function ActionItemModal({ isOpen, areas, editingItem, onSave, onClose, o
             }
           }}
           style={{
-            transform: "rotate(-2deg)",
-            transformOrigin: "center",
+            transformOrigin: "center center",
             zIndex: 101,
+            opacity: 0,
+            transform: 'scale(0.7) rotate(-5deg)',
           }}
         >
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 text-white/40 hover:text-white/70 transition-colors z-10 p-1"
+            className="absolute top-2 right-2 transition-colors z-10 p-1 opacity-70 hover:opacity-100"
+            style={{ color: textColor }}
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -115,7 +128,10 @@ export function ActionItemModal({ isOpen, areas, editingItem, onSave, onClose, o
                 <textarea
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full h-full bg-transparent border-0 rounded-sm p-3 text-xl font-semibold leading-snug resize-none focus:outline-none focus:ring-0 placeholder-white/60"
+                  className="w-full h-full bg-transparent border-0 rounded-sm p-3 text-xl font-semibold leading-snug resize-none focus:outline-none focus:ring-0 placeholder:opacity-60"
+                  style={{ 
+                    color: textColor,
+                  } as CSSProperties}
                   maxLength={80}
                   autoFocus
                   placeholder={editingItem ? "" : "Enter action item title..."}
@@ -130,7 +146,8 @@ export function ActionItemModal({ isOpen, areas, editingItem, onSave, onClose, o
                       handleSave();
                     }}
                     disabled={!hasChanges}
-                    className="inline-flex items-center justify-center text-white/60 hover:text-white/90 transition-colors disabled:opacity-30 p-1"
+                    className="inline-flex items-center justify-center transition-colors disabled:opacity-30 p-1 opacity-70 hover:opacity-100"
+                    style={{ color: textColor }}
                     title="Save"
                   >
                     <Save className="w-6 h-6" />
@@ -142,13 +159,14 @@ export function ActionItemModal({ isOpen, areas, editingItem, onSave, onClose, o
                         event.stopPropagation();
                         onArchive();
                       }}
-                      className="inline-flex items-center justify-center text-white/60 hover:text-white/90 transition-colors p-1"
+                      className="inline-flex items-center justify-center transition-colors p-1 opacity-70 hover:opacity-100"
+                      style={{ color: textColor }}
                       title="Archive"
                     >
                       <Archive className="w-6 h-6" />
                     </button>
                   )}
-                  <span className="text-[10px] text-white/50">{title.length}/80</span>
+                  <span className="text-[10px] opacity-50" style={{ color: textColor }}>{title.length}/80</span>
                 </div>
                 <div className="relative" style={{ zIndex: 1000, overflow: "visible" }}>
                   <button

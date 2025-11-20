@@ -26,7 +26,10 @@ export function PostItCard({ item, area, onPointerDown, onPointerUp, onDoubleCli
       className="w-[95px] h-[95px] post-it-wrapper select-none cursor-pointer"
       onPointerDown={(event) => onPointerDown(item.id, event)}
       onPointerUp={(event) => onPointerUp(item, event)}
-      onDoubleClick={() => onDoubleClick?.(item)}
+      onDoubleClick={onDoubleClick ? (e) => {
+        e.stopPropagation();
+        onDoubleClick(item);
+      } : undefined}
     >
       <div
         className="post-it post-it--small group"
