@@ -25,13 +25,13 @@ export default function LifeAreaCardWithActions({
   const textColor = getContrastTextColor(area.color);
 
   return (
-    <div className={`relative ${isArchived ? "opacity-60" : ""}`}>
+    <div className={`relative group ${isArchived ? "opacity-60" : ""}`}>
       <LifeAreaCard
         area={area}
         currentScore={currentScore}
         onClick={onClick}
       />
-      <div className="absolute top-2 right-2 flex gap-1">
+      <div className="absolute top-2 right-2 flex gap-1 transition-transform duration-300 ease-in-out group-hover:-translate-y-0.5">
         {!isArchived && (
           <>
             {onEdit && (
