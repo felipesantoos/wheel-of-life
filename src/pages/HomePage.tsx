@@ -85,7 +85,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -95,15 +95,15 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Bem-vindo ao Roda da Vida!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Wheel of Life!</h2>
           <p className="text-gray-600 mb-6">
-            Crie sua primeira área para acompanhar diferentes aspectos da vida e visualizar seu progresso.
+            Create your first area to track different aspects of your life and visualize your progress.
           </p>
           <button
             onClick={() => onNavigate("manage")}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
           >
-            Criar primeira área
+            Create first area
           </button>
         </div>
       </div>
@@ -116,8 +116,8 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Roda da Vida</h1>
-          <p className="text-gray-600 mt-1">Atualize notas clicando no gráfico ou abra o detalhe da área.</p>
+          <h1 className="text-3xl font-bold text-gray-900">Wheel of Life</h1>
+          <p className="text-gray-600 mt-1">Update scores by clicking on the chart or open the area details.</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -125,14 +125,14 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
           >
             <History className="w-4 h-4" />
-            Histórico
+            History
           </button>
           <button
             onClick={() => onNavigate("manage")}
             className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
           >
             <Settings className="w-4 h-4" />
-            Gerenciar Áreas
+            Manage Areas
           </button>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 rounded-lg p-8">
           <LifeWheel areas={areas} scores={scores} onAreaClick={handleAreaClick} onScoreClick={handleScoreClick} size={500} />
           <p className="text-sm text-gray-600 mt-10 text-center">
-            Clique no gráfico para atualizar notas ou selecione o nome da área para ver detalhes.
+            Click the chart to update scores or select the area name to view details.
           </p>
         </div>
 
@@ -152,10 +152,10 @@ export default function HomePage({ onNavigate }: HomePageProps) {
           actionItemsLoading={actionItemsLoading}
           visibleItems={visibleItems}
           canReorder={canReorder}
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
+                  sensors={sensors}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
           onCreateClick={openCreateModal}
           renderCard={renderCard}
         />
@@ -163,7 +163,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 
       <ActionItemModal
         isOpen={showActionItemModal}
-        areas={areas}
+                areas={areas}
         editingItem={editingItem}
         onSave={handleSaveActionItem}
         onClose={closeActionItemModal}
