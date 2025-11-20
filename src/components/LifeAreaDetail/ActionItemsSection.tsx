@@ -12,7 +12,7 @@ interface ActionItemsSectionProps {
   onUpdateItem: (itemId: number, title: string) => Promise<void>;
   onArchiveItem: (id: number) => void;
   onResetClick: () => void;
-  onOpenEditModal?: (item: ActionItem) => void;
+  onOpenEditModal?: (item: ActionItem | null) => void;
   onOpenExpandedModal?: (item: ActionItem) => void;
 }
 
@@ -137,8 +137,12 @@ export default function ActionItemsSection({
           {!showActionItemForm && (
             <button
               onClick={() => {
-                setEditingItem(null);
-                setShowActionItemForm(true);
+                if (onOpenEditModal) {
+                  onOpenEditModal(null);
+                } else {
+                  setEditingItem(null);
+                  setShowActionItemForm(true);
+                }
               }}
               className="relative px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 shadow-md overflow-hidden hover:opacity-90"
               style={{

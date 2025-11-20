@@ -85,7 +85,7 @@ export default function LifeAreaDetailPage({
     }
   };
 
-  const handleOpenEditModal = (item: ActionItem) => {
+  const handleOpenEditModal = (item: ActionItem | null) => {
     setEditingItem(item);
     setShowActionItemModal(true);
   };
