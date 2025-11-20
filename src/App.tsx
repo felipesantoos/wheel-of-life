@@ -15,7 +15,12 @@ function App() {
   const [navigation, setNavigation] = useState<NavigationState>({ page: "home" });
 
   const handleNavigate = (page: Page, data?: any) => {
-    setNavigation({ page, data });
+    if (page === "detail" && data) {
+      // Store the previous page when navigating to detail
+      setNavigation({ page, data: { ...data, fromPage: navigation.page } });
+    } else {
+      setNavigation({ page, data });
+    }
   };
 
   return (
@@ -34,6 +39,7 @@ function App() {
         {navigation.page === "detail" && (
           <LifeAreaDetailPage
             areaId={navigation.data?.areaId}
+            fromPage={navigation.data?.fromPage}
             onNavigate={handleNavigate}
           />
         )}

@@ -5,9 +5,10 @@ import { formatDateShort } from "../../lib/utils";
 
 interface ScoreHistoryChartProps {
   scores: Score[];
+  areaColor?: string;
 }
 
-export default function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
+export default function ScoreHistoryChart({ scores, areaColor = "#3b82f6" }: ScoreHistoryChartProps) {
   const chartData = useMemo(() => {
     if (scores.length === 0) return [];
     // Reverse to show chronological order
@@ -46,10 +47,10 @@ export default function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
           <Line
             type="monotone"
             dataKey="score"
-            stroke="#3b82f6"
+            stroke={areaColor}
             strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
+            dot={{ r: 4, fill: areaColor }}
+            activeDot={{ r: 6, fill: areaColor }}
           />
         </LineChart>
       </ResponsiveContainer>

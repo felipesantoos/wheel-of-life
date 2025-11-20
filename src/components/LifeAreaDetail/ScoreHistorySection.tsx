@@ -1,6 +1,7 @@
 import { LifeArea, Score } from "../../types";
-import { formatDate } from "../../lib/utils";
 import ScoreHistoryChart from "../Scores/ScoreHistoryChart";
+import { RotateCw } from "lucide-react";
+import { type CSSProperties } from "react";
 
 interface ScoreHistorySectionProps {
   area: LifeArea;
@@ -14,36 +15,50 @@ export default function ScoreHistorySection({
   onResetClick,
 }: ScoreHistorySectionProps) {
   return (
-    <section className="bg-white rounded-lg shadow-sm p-6">
+    <section className="bg-white rounded-lg shadow-sm p-6 h-full">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900">Score History</h2>
         {scores.length > 0 && (
           <button
             onClick={onResetClick}
-            className="px-3 py-1.5 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            className="relative px-3 py-1.5 text-sm text-white rounded-lg transition-colors flex items-center gap-2 shadow-md overflow-hidden hover:opacity-90"
+            style={{
+              backgroundColor: "#dc2626",
+            } as CSSProperties}
           >
-            Reset Score History
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.4), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 65%), linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 40%)",
+                opacity: 0.65,
+                mixBlendMode: "screen",
+              } as CSSProperties}
+            />
+            <div
+              className="absolute bottom-0 right-0 pointer-events-none"
+              style={{
+                borderStyle: "solid",
+                borderWidth: "0 0 28px 28px",
+                borderColor: "transparent transparent rgba(15, 23, 42, 0.18) transparent",
+                opacity: 0.35,
+              } as CSSProperties}
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                boxShadow:
+                  "inset 0 -2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+              } as CSSProperties}
+            />
+            <RotateCw className="w-4 h-4 relative z-10" />
+            <span className="relative z-10">Reset</span>
           </button>
         )}
       </div>
-      <ScoreHistoryChart scores={scores} />
-      {scores.length > 0 && (
-        <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
-          {scores.map((score) => (
-            <div
-              key={score.id}
-              className="flex items-center justify-between p-2 bg-gray-50 rounded"
-            >
-              <span className="text-sm text-gray-700">
-                {formatDate(score.recorded_at)}
-              </span>
-              <span className="font-semibold" style={{ color: area.color }}>
-                {score.value}/10
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="flex-1 flex items-center justify-center min-h-0">
+        <ScoreHistoryChart scores={scores} areaColor={area.color} />
+      </div>
     </section>
   );
 }
