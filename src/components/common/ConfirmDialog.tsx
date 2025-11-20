@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { type CSSProperties } from "react";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -37,15 +38,71 @@ export default function ConfirmDialog({
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="relative px-4 py-2 text-gray-700 rounded-lg transition-colors shadow-md overflow-hidden hover:opacity-90"
+            style={{
+              backgroundColor: "#f3f4f6",
+            } as CSSProperties}
           >
-            {cancelText}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.4), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 65%), linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 40%)",
+                opacity: 0.65,
+                mixBlendMode: "screen",
+              } as CSSProperties}
+            />
+            <div
+              className="absolute bottom-0 right-0 pointer-events-none"
+              style={{
+                borderStyle: "solid",
+                borderWidth: "0 0 28px 28px",
+                borderColor: "transparent transparent rgba(15, 23, 42, 0.18) transparent",
+                opacity: 0.35,
+              } as CSSProperties}
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                boxShadow:
+                  "inset 0 -2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+              } as CSSProperties}
+            />
+            <span className="relative z-10">{cancelText}</span>
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+            className="relative px-4 py-2 text-white rounded-lg transition-colors shadow-md overflow-hidden hover:opacity-90"
+            style={{
+              backgroundColor: "#dc2626",
+            } as CSSProperties}
           >
-            {confirmText}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.4), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 65%), linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 40%)",
+                opacity: 0.65,
+                mixBlendMode: "screen",
+              } as CSSProperties}
+            />
+            <div
+              className="absolute bottom-0 right-0 pointer-events-none"
+              style={{
+                borderStyle: "solid",
+                borderWidth: "0 0 28px 28px",
+                borderColor: "transparent transparent rgba(15, 23, 42, 0.18) transparent",
+                opacity: 0.35,
+              } as CSSProperties}
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                boxShadow:
+                  "inset 0 -2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+              } as CSSProperties}
+            />
+            <span className="relative z-10">{confirmText}</span>
           </button>
         </div>
       </div>
