@@ -11,16 +11,22 @@ interface LifeAreaFormModalProps {
 }
 
 const DEFAULT_COLORS = [
-  "#3b82f6", // blue
-  "#10b981", // green
-  "#f59e0b", // orange
-  "#ef4444", // red
-  "#8b5cf6", // purple
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-  "#84cc16", // lime
-  "#f97316", // orange
-  "#6366f1", // indigo
+  "#00ffff", // aqua
+  "#000000", // black
+  "#0000ff", // blue
+  "#ff00ff", // fuchsia
+  "#808080", // gray
+  "#008000", // green
+  "#00ff00", // lime
+  "#800000", // maroon
+  "#000080", // navy
+  "#808000", // olive
+  "#800080", // purple
+  "#ff0000", // red
+  "#c0c0c0", // silver
+  "#008080", // teal
+  "#ffffff", // white
+  "#ffff00", // yellow
 ];
 
 export default function LifeAreaFormModal({
@@ -144,11 +150,37 @@ export default function LifeAreaFormModal({
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-10 h-10 rounded-full border-2 transition-all ${
-                    color === c ? "border-gray-900 scale-110" : "border-gray-300"
+                  className={`relative w-10 h-10 rounded-full border-2 transition-all overflow-hidden ${
+                    color === c ? "border-gray-900 scale-110 shadow-md" : "border-gray-300"
                   }`}
                   style={{ backgroundColor: c }}
-                />
+                >
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.4), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 65%), linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 40%)",
+                      opacity: 0.65,
+                      mixBlendMode: "screen",
+                    } as CSSProperties}
+                  />
+                  <div
+                    className="absolute bottom-0 right-0 pointer-events-none"
+                    style={{
+                      borderStyle: "solid",
+                      borderWidth: "0 0 12px 12px",
+                      borderColor: "transparent transparent rgba(15, 23, 42, 0.18) transparent",
+                      opacity: 0.35,
+                    } as CSSProperties}
+                  />
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      boxShadow:
+                        "inset 0 -2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+                    } as CSSProperties}
+                  />
+                </button>
               ))}
             </div>
             <input
