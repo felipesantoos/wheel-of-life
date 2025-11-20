@@ -32,8 +32,12 @@ export default function ActionItemForm({
   useEffect(() => {
     if (item) {
       setTitle(item.title);
+      setSelectedAreaId(item.area_id);
+    } else {
+      setTitle("");
+      setSelectedAreaId(areaId);
     }
-  }, [item]);
+  }, [item, areaId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +64,20 @@ export default function ActionItemForm({
       setIsSubmitting(false);
     }
   };
+
+  const headerContent = showHeader ? (
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-xl font-bold text-gray-900">
+        {item ? "Edit Action Item" : "Create Action Item"}
+      </h2>
+      <button
+        onClick={onCancel}
+        className="text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  ) : null;
 
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -128,19 +146,7 @@ export default function ActionItemForm({
   if (showCardWrapper) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
-        {showHeader && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">
-              {item ? "Edit Action Item" : "Create Action Item"}
-            </h2>
-            <button
-              onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+        {headerContent}
         {formContent}
       </div>
     );
@@ -148,19 +154,7 @@ export default function ActionItemForm({
 
   return (
     <>
-      {showHeader && (
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">
-            {item ? "Edit Action Item" : "Create Action Item"}
-          </h2>
-          <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+      {headerContent}
       {formContent}
     </>
   );

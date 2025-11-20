@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Score } from "../../types";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { formatDateShort } from "../../lib/utils";
@@ -7,6 +8,16 @@ interface ScoreHistoryChartProps {
 }
 
 export default function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
+  const chartData = useMemo(() => {
+    if (scores.length === 0) return [];
+    // Reverse to show chronological order
+    return [...scores].reverse().map((score) => ({
+      date: formatDateShort(score.recorded_at),
+      timestamp: score.recorded_at,
+      score: score.value,
+    }));
+  }, [scores]);
+
   if (scores.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
@@ -14,13 +25,6 @@ export default function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
       </div>
     );
   }
-
-  // Reverse to show chronological order
-  const chartData = [...scores].reverse().map((score) => ({
-    date: formatDateShort(score.recorded_at),
-    timestamp: score.recorded_at,
-    score: score.value,
-  }));
 
   return (
     <div className="w-full h-64">

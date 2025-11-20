@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check } from "lucide-react";
 
 interface ScoreFormProps {
@@ -9,6 +9,12 @@ interface ScoreFormProps {
 export default function ScoreForm({ onSubmit, currentScore }: ScoreFormProps) {
   const [value, setValue] = useState<number>(currentScore ?? 5);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (currentScore !== undefined) {
+      setValue(currentScore);
+    }
+  }, [currentScore]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

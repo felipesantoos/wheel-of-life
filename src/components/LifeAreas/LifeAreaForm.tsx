@@ -40,8 +40,13 @@ export default function LifeAreaForm({
       setDescription(area.description || "");
       setColor(area.color);
       setOrder(area.order);
+    } else {
+      setName("");
+      setDescription("");
+      setColor(DEFAULT_COLORS[0]);
+      setOrder(maxOrder + 1);
     }
-  }, [area]);
+  }, [area, maxOrder]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
