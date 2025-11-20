@@ -1,4 +1,5 @@
 import { ArrowLeft, Plus, RotateCw } from "lucide-react";
+import { type CSSProperties } from "react";
 
 interface ManagementPageHeaderProps {
   onNavigate: () => void;
@@ -31,17 +32,73 @@ export default function ManagementPageHeader({
         <div className="flex gap-2">
           <button
             onClick={onResetClick}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+            className="relative px-4 py-2 text-white rounded-lg transition-colors shadow-md overflow-hidden hover:opacity-90 flex items-center gap-2"
+            style={{
+              backgroundColor: "#dc2626",
+            } as CSSProperties}
           >
-            <RotateCw className="w-4 h-4" />
-            Reset Database
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.4), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 65%), linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 40%)",
+                opacity: 0.65,
+                mixBlendMode: "screen",
+              } as CSSProperties}
+            />
+            <div
+              className="absolute bottom-0 right-0 pointer-events-none"
+              style={{
+                borderStyle: "solid",
+                borderWidth: "0 0 28px 28px",
+                borderColor: "transparent transparent rgba(15, 23, 42, 0.18) transparent",
+                opacity: 0.35,
+              } as CSSProperties}
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                boxShadow:
+                  "inset 0 -2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+              } as CSSProperties}
+            />
+            <RotateCw className="w-4 h-4 relative z-10" />
+            <span className="relative z-10">Reset Database</span>
           </button>
           <button
             onClick={onCreateClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="relative px-4 py-2 text-white rounded-lg transition-colors shadow-md overflow-hidden hover:opacity-90 flex items-center gap-2"
+            style={{
+              backgroundColor: "#2563eb",
+            } as CSSProperties}
           >
-            <Plus className="w-4 h-4" />
-            Create Area
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.4), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 65%), linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 40%)",
+                opacity: 0.65,
+                mixBlendMode: "screen",
+              } as CSSProperties}
+            />
+            <div
+              className="absolute bottom-0 right-0 pointer-events-none"
+              style={{
+                borderStyle: "solid",
+                borderWidth: "0 0 28px 28px",
+                borderColor: "transparent transparent rgba(15, 23, 42, 0.18) transparent",
+                opacity: 0.35,
+              } as CSSProperties}
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                boxShadow:
+                  "inset 0 -2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+              } as CSSProperties}
+            />
+            <Plus className="w-4 h-4 relative z-10" />
+            <span className="relative z-10">Create Area</span>
           </button>
         </div>
       )}
