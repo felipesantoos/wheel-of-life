@@ -1,4 +1,4 @@
-import { LifeArea, Score } from "../../types";
+import { LifeArea } from "../../types";
 import LifeAreaCard from "../LifeAreas/LifeAreaCard";
 import { Edit2, Archive, RotateCcw } from "lucide-react";
 import { getContrastTextColor } from "../../lib/utils";

@@ -85,7 +85,6 @@ export default function LifeAreasManagementPage({
           setShowForm(true);
         }}
         onResetClick={() => setShowResetDialog(true)}
-        showForm={showForm}
       />
 
       <div className="flex-1 overflow-y-auto space-y-6 p-4">

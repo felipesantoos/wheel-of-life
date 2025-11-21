@@ -126,10 +126,6 @@ export default function LifeAreaDetailPage({
     setShowArchiveDialog(true);
   };
 
-  const requestArchiveItem = (id: number) => {
-    setItemToArchive(id);
-    setShowArchiveDialog(true);
-  };
 
   const confirmArchiveItem = async () => {
     if (itemToArchive === null) return;
@@ -209,7 +205,6 @@ export default function LifeAreaDetailPage({
             items={items}
             onCreateItem={handleCreateActionItem}
             onUpdateItem={handleUpdateActionItem}
-            onArchiveItem={requestArchiveItem}
             onResetClick={() => setShowResetActionItemsDialog(true)}
             onOpenEditModal={handleOpenEditModal}
             onOpenExpandedModal={handleOpenExpandedModal}

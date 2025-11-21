@@ -5,14 +5,12 @@ interface ManagementPageHeaderProps {
   onNavigate: () => void;
   onCreateClick: () => void;
   onResetClick: () => void;
-  showForm: boolean;
 }
 
 export default function ManagementPageHeader({
   onNavigate,
   onCreateClick,
   onResetClick,
-  showForm,
 }: ManagementPageHeaderProps) {
   return (
     <div className="flex items-center gap-4 mb-6">

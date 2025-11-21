@@ -10,7 +10,6 @@ interface ActionItemsSectionProps {
   items: ActionItem[];
   onCreateItem: (areaId: number, title: string) => Promise<void>;
   onUpdateItem: (itemId: number, title: string) => Promise<void>;
-  onArchiveItem: (id: number) => void;
   onResetClick: () => void;
   onOpenEditModal?: (item: ActionItem | null) => void;
   onOpenExpandedModal?: (item: ActionItem) => void;
@@ -24,7 +23,6 @@ export default function ActionItemsSection({
   items,
   onCreateItem,
   onUpdateItem,
-  onArchiveItem,
   onResetClick,
   onOpenEditModal,
   onOpenExpandedModal,
@@ -39,16 +37,11 @@ export default function ActionItemsSection({
     setShowActionItemForm(false);
   };
 
-  const handleUpdateActionItem = async (areaId: number, title: string) => {
+  const handleUpdateActionItem = async (_areaId: number, title: string) => {
     if (!editingItem) return;
     await onUpdateItem(editingItem.id, title);
     setEditingItem(null);
     setShowActionItemForm(false);
-  };
-
-  const handleEditItem = (item: ActionItem) => {
-    setEditingItem(item);
-    setShowActionItemForm(true);
   };
 
   const handleCancel = () => {
